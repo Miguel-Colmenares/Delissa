@@ -6,6 +6,7 @@ const Login = () => {
   const [role, setRole] = useState('empleado');
   const [correo, setCorreo] = useState('');
   const [password, setPassword] = useState('');
+ 
 
 const handleSubmit = async (e) => {
   e.preventDefault();
@@ -23,15 +24,17 @@ const handleSubmit = async (e) => {
       })
     });
 
+    // 🔥 VALIDACIÓN REAL
+    if (!res.ok) {
+      alert("Credenciales incorrectas ❌");
+      return;
+    }
+
     const data = await res.json();
 
-    if (data) {
-      localStorage.setItem("user", JSON.stringify(data));
-      alert(`Bienvenido ${data.nombre} 🔥`);
-      navigate("/dashboard");
-    } else {
-      alert("Credenciales incorrectas ❌");
-    }
+    localStorage.setItem("user", JSON.stringify(data));
+    alert(`Bienvenido ${data.nombre} 🔥`);
+    navigate("/dashboard");
 
   } catch (error) {
     console.error(error);

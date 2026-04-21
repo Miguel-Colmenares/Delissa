@@ -182,3 +182,17 @@
     border-right-color: var(--border);
   }
 }
+
+/* SCROLL MODERNO */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(#FF9F1C, #FF4040);
+  border-radius: 10px;
+}

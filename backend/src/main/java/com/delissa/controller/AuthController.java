@@ -26,17 +26,12 @@ public class AuthController {
     // =========================
     // LOGIN (CON ROL)
     // =========================
-    @PostMapping("/login")
-    public boolean login(@RequestBody UserLoginRequest request) {
-        try {
-            userService.login(
-                request.getCorreo(),
-                request.getPassword(),
-                request.getRol()   // 🔥 IMPORTANTE
-            );
-            return true;
-        } catch (Exception e) {
-            return false;
-        }
-    }
+   @PostMapping("/login")
+public User login(@RequestBody UserLoginRequest request) {
+    return userService.login(
+        request.getCorreo(),
+        request.getPassword(),
+        request.getRol()
+    );
+}
 }
