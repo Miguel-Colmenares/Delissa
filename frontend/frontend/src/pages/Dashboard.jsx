@@ -128,16 +128,31 @@ export default function Dashboard() {
     // 🔥 limpiar carrito
     setCart([]);
 
-    // 🔥 cerrar modal
-    setOpenSaleModal(false);
 
-    alert("✅ Venta realizada con éxito");
 
   } catch (error) {
     console.error(error);
     alert("❌ Error al procesar la venta");
   }
 };
+
+
+const groupedProducts = products.reduce((acc, product) => {
+  const category = product.category || "otros";
+  const sub = product.subCategory || "general";
+
+  if (!acc[category]) {
+    acc[category] = {};
+  }
+
+  if (!acc[category][sub]) {
+    acc[category][sub] = [];
+  }
+
+  acc[category][sub].push(product);
+
+  return acc;
+}, {});
 
   return (
 
@@ -186,117 +201,71 @@ export default function Dashboard() {
   ${openCart ? "mr-[350px]" : "mr-0"}`}
   >
 
-  {/* 🔥 VENTAS */}
-  {/* 🔥 VENTAS */}
-  {activeTab === "ventas" && (
-    <>
-      <header className="flex justify-between items-center mb-8">
-        <img src={logo} alt="logo" className="w-18 h-15 object-contain" />
+    {/* 🔥 VENTAS */}
+    {/* 🔥 VENTAS */}
+    {activeTab === "ventas" && (
+      <>
+        <header className="flex justify-between items-center mb-8">
+          <img src={logo} alt="logo" className="w-18 h-15 object-contain" />
 
-        <h1 className="text-4xl font-extrabold tracking-tight">
-          <span className="text-[#FF9F1C]">MENÚ</span>{" "}
-          <span className="text-[#FF4040]">DEL LOCAL</span>
-        </h1>
+          <h1 className="text-4xl font-extrabold tracking-tight bg-gradient-to-r from-[#FF9F1C] to-[#FF4040] bg-clip-text text-transparent">
+  MENÚ DE PRODUCTOS
+</h1>
 
-        <div className="relative w-72">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+          <div className="relative w-72">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
 
-          <input
-            placeholder="Buscar productos..."
-            className="w-full pl-11 pr-4 py-3 rounded-2xl bg-white border border-gray-200 shadow-md"
-          />
+            <input
+              placeholder="Buscar productos..."
+              className="w-full pl-11 pr-4 py-3 rounded-2xl bg-white border border-gray-200 shadow-md"
+            />
+          </div>
+        </header>
+
+       {activeTab === "ventas" && (
+  <>
+ 
+    {/* 🔥 CATEGORÍAS DINÁMICAS */}
+    {Object.keys(groupedProducts).map((category) => (
+      <div key={category} className="mb-8">
+
+        {/* 🔥 TITULO CATEGORY */}
+        <h2 className="text-xl font-bold mb-4 text-gray-700 capitalize">
+          {category}
+        </h2>
+
+        {/* 🔥 SUBCATEGORÍAS */}
+        <div className="space-y-4">
+          {Object.keys(groupedProducts[category]).map((sub) => (
+            <Dropdown
+              key={sub}
+              title={sub}
+              open={openSections[sub] ?? true}
+              onClick={() =>
+                setOpenSections(prev => ({
+                  ...prev,
+                  [sub]: !prev[sub]
+                }))
+              }
+              addToCart={addToCart}
+              formatCOP={formatCOP}
+            >
+              {groupedProducts[category][sub]}
+            </Dropdown>
+          ))}
         </div>
-      </header>
 
-      {/* 🥟 ENTRADAS */}
-      <h2 className="text-xl font-bold mb-4 text-gray-700">Entradas</h2>
-
-      <Dropdown
-        title="Ver Entradas"
-        open={openSections["entrada"]}
-        onClick={() => toggleSection("entrada")}
-        addToCart={addToCart}
-        formatCOP={formatCOP}
-      >
-        {products.filter(p => p.category === "entrada")}
-      </Dropdown>
-
-      {/* 🍔 COMIDA */}
-      <h2 className="text-xl font-bold mb-4 text-gray-700">Comida</h2>
-
-      <div className="space-y-4 mb-8">
-        <Dropdown
-          title="Hamburguesas"
-          open={openSections["hamburguesa"]}
-          onClick={() => toggleSection("hamburguesa")}
-          addToCart={addToCart}
-          formatCOP={formatCOP}
-        >
-          {products.filter(p =>
-            p.category === "comida" &&
-            (p.sub_category || p.subCategory) === "hamburguesa"
-          )}
-        </Dropdown>
-
-        <Dropdown
-          title="Perros"
-          open={openSections["perro"]}
-          onClick={() => toggleSection("perro")}
-          addToCart={addToCart}
-          formatCOP={formatCOP}
-        >
-          {products.filter(p =>
-            p.category === "comida" &&
-            (p.sub_category || p.subCategory) === "perro"
-          )}
-        </Dropdown>
-
-        <Dropdown
-          title="Carnes"
-          open={openSections["carne"]}
-          onClick={() => toggleSection("carne")}
-          addToCart={addToCart}
-          formatCOP={formatCOP}
-        >
-          {products.filter(p =>
-            p.category === "comida" &&
-            (p.sub_category || p.subCategory) === "carne"
-          )}
-        </Dropdown>
-
-        <Dropdown
-          title="Chorizos"
-          open={openSections["chorizo"]}
-          onClick={() => toggleSection("chorizo")}
-          addToCart={addToCart}
-          formatCOP={formatCOP}
-        >
-          {products.filter(p =>
-            p.category === "comida" &&
-            (p.sub_category || p.subCategory) === "chorizo"
-          )}
-        </Dropdown>
       </div>
+    ))}
+  </>
+)}
+      </>
+    )}
 
-      {/* 🥤 BEBIDAS */}
-      <h2 className="text-xl font-bold mb-4 text-gray-700">Bebidas</h2>
+    {/* 🔥 STOCK */}
+    {activeTab === "stock" && <Stock />}
 
-      <Dropdown
-        title="Ver Bebidas"
-        open={openSections["bebida"]}
-        onClick={() => toggleSection("bebida")}
-        addToCart={addToCart}
-        formatCOP={formatCOP}
-      >
-        {products.filter(p => p.category === "bebida")}
-      </Dropdown>
-    </>
-  )}
-
-  {/* 🔥 STOCK */}
-  {activeTab === "stock" && <Stock />}
-
-</section>
+  </section>
 
 
     {/* 🛒 CARRITO DESLIZABLE */}
@@ -387,6 +356,8 @@ export default function Dashboard() {
       open={openSaleModal}
       onClose={() => setOpenSaleModal(false)}
       onConfirm={handleConfirmSale}
+      total={subtotal}
+        cart={cart} 
     />
 
   </div>
