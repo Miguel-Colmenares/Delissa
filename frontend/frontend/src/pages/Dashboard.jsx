@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import SaleModal from "../pages/SaleModal";
 import Stock from "../pages/Stock";
+import Box_Money from "../pages/Box_Money";
+import { Wallet } from "lucide-react";
 import {
   Plus,
   Minus,
@@ -167,6 +169,8 @@ const groupedProducts = products.reduce((acc, product) => {
         <SidebarItem icon={<Package />} label="Stock" active={activeTab==="stock"} onClick={()=>setActiveTab("stock")} />
         <SidebarItem icon={<BarChart3 />} label="Stats" active={activeTab==="stats"} onClick={()=>setActiveTab("stats")} />
         <SidebarItem icon={<FileText />} label="Facturas" active={activeTab==="facturas"} onClick={()=>setActiveTab("facturas")} />
+        <SidebarItem icon={<Wallet />} label="Caja" active={activeTab==="boxMoney"} onClick={()=>setActiveTab("boxMoney")} 
+/>
         <div className="mt-auto w-full px-3 pt-6">
 
   <div className="mt-auto w-full px-3">
@@ -264,6 +268,7 @@ const groupedProducts = products.reduce((acc, product) => {
 
     {/* 🔥 STOCK */}
     {activeTab === "stock" && <Stock />}
+    {activeTab === "boxMoney" && <Box_Money formatCOP={formatCOP} />}
 
   </section>
 

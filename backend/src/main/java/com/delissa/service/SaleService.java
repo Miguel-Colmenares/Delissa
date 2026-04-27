@@ -6,7 +6,9 @@ import org.springframework.transaction.annotation.Transactional;
 import com.delissa.model.*;
 import com.delissa.repository.*;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -24,6 +26,7 @@ public class SaleService {
         this.clientInvoiceRepository = clientInvoiceRepository;
     }
 
+    // 🔥 CREAR VENTA
     @Transactional
     public Sale createSale(Sale sale) {
 
@@ -51,7 +54,7 @@ public class SaleService {
                 throw new RuntimeException("Stock insuficiente para: " + product.getName());
             }
 
-            // 🔥 snapshot (guardar info aunque el producto cambie después)
+            // 🔥 snapshot
             detail.setProductName(product.getName());
             detail.setUnitPrice(product.getPrice());
             detail.setSubtotal(product.getPrice() * detail.getQuantity());
@@ -68,14 +71,8 @@ public class SaleService {
 
         // 🔥 totales
         sale.setSubtotal(subtotal);
-
-        // 👉 OPCIÓN SIMPLE (recomendada)
         sale.setTax(0.0);
         sale.setTotal(subtotal);
-
-        // 👉 si luego quieres IVA:
-        // sale.setTax(subtotal * 0.19);
-        // sale.setTotal(subtotal + sale.getTax());
 
         sale.setStatus(SaleStatus.PAID);
 
@@ -86,14 +83,23 @@ public class SaleService {
             ClientInvoice invoice = sale.getClientInvoice();
 
             invoice.setSale(sale);
-
-            // 🔥 número de factura
             invoice.setInvoiceNumber("INV-" + System.currentTimeMillis());
 
             clientInvoiceRepository.save(invoice);
         }
 
-        // 🔥 guardar venta (cascade guarda detalles)
         return saleRepository.save(sale);
+    }
+
+    // 🔥 OBTENER TODAS LAS VENTAS (NECESARIO PARA FRONT)
+    public List<Sale> getAllSales() {
+        return saleRepository.findAll();
+    }
+
+    // 🔥 VENTAS DEL DÍA (PARA CAJA)
+    public List<Sale> getTodaySales() {
+        return saleRepository.findAll().stream()
+                .filter(s -> s.getDate().toLocalDate().equals(LocalDate.now()))
+                .toList();
     }
 }

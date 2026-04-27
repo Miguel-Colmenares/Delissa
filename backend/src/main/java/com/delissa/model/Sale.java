@@ -3,7 +3,7 @@ package com.delissa.model;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.List;
-
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 
 @Entity
@@ -33,9 +33,10 @@ public class Sale {
     private SaleStatus status; // PAID, PENDING, CANCELLED
 
     // 🔥 usuario que realiza la venta
-    @ManyToOne
-    @JoinColumn(name = "usuario_id")
-    private User usuario;
+   @ManyToOne
+@JoinColumn(name = "usuario_id")
+@JsonIgnore
+private User usuario;
 
     // 🔥 detalles de la venta
     @OneToMany(mappedBy = "sale", cascade = CascadeType.ALL)
@@ -43,8 +44,9 @@ public class Sale {
     private List<SaleDetail> details;
 
     // 🔥 factura empresarial (opcional)
-    @OneToOne(mappedBy = "sale", cascade = CascadeType.ALL)
-    private ClientInvoice clientInvoice;
+   @OneToOne(mappedBy = "sale", cascade = CascadeType.ALL)
+@JsonIgnore
+private ClientInvoice clientInvoice;
 
     // -------------------------
     // CONSTRUCTORES
