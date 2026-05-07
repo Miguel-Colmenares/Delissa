@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 @Entity
 @Table(name = "sales")
@@ -39,13 +40,13 @@ public class Sale {
 private User usuario;
 
     // 🔥 detalles de la venta
-    @OneToMany(mappedBy = "sale", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "sale", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference
     private List<SaleDetail> details;
 
     // 🔥 factura empresarial (opcional)
    @OneToOne(mappedBy = "sale", cascade = CascadeType.ALL)
-@JsonIgnore
+@JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
 private ClientInvoice clientInvoice;
 
     // -------------------------

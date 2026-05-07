@@ -24,21 +24,20 @@ const handleSubmit = async (e) => {
       })
     });
 
-    // 🔥 VALIDACIÓN REAL
     if (!res.ok) {
-      alert("Credenciales incorrectas ❌");
+      alert("Credenciales incorrectas");
       return;
     }
 
     const data = await res.json();
 
     localStorage.setItem("user", JSON.stringify(data));
-    alert(`Bienvenido ${data.nombre} 🔥`);
+    alert(`Bienvenido ${data.nombre}`);
     navigate("/dashboard");
 
   } catch (error) {
     console.error(error);
-    alert("Error en el servidor ⚠️");
+    alert("Error en el servidor");
   }
 };
   return (

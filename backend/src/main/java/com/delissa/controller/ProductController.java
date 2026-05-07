@@ -6,6 +6,7 @@ import com.delissa.repository.ProductRepository;
 import com.delissa.repository.InventoryRepository;
 import com.delissa.model.User;
 import com.delissa.repository.UserRepository;
+import com.delissa.service.ProductionStockService;
 
 import org.springframework.web.bind.annotation.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,12 +22,17 @@ import java.util.List;
 public class ProductController {
 
     private final ProductRepository productRepository;
+    private final ProductionStockService productionStockService;
 
     @Autowired
     private InventoryRepository inventoryRepository;
 
-    public ProductController(ProductRepository productRepository) {
+    @Autowired
+    private UserRepository userRepository;
+
+    public ProductController(ProductRepository productRepository, ProductionStockService productionStockService) {
         this.productRepository = productRepository;
+        this.productionStockService = productionStockService;
     }
 
     // 🔥 GET ALL PRODUCTS
@@ -39,7 +45,8 @@ public class ProductController {
     @PutMapping("/{id}/stock")
     public Product updateStock(
             @PathVariable Long id,
-            @RequestParam Integer quantity
+            @RequestParam Integer quantity,
+            @RequestParam(required = false) Long userId
     ) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
@@ -48,12 +55,17 @@ public class ProductController {
         product.setStock(newStock);
 
         productRepository.save(product);
+        if (quantity < 0) {
+            productionStockService.discountForProduct(product.getId(), Math.abs(quantity), "Salida manual de producto", userId);
+        }
 
         // 🔥 GUARDAR HISTORIAL
         Inventory inv = new Inventory();
         inv.setProduct(product);
         inv.setQuantity(quantity);
         inv.setLastUpdate(LocalDateTime.now());
+        User user = userId != null ? userRepository.findById(userId.intValue()).orElse(null) : null;
+        inv.setUser(user);
 
         inventoryRepository.save(inv);
 
@@ -62,7 +74,10 @@ public class ProductController {
 
     // 🔥 BULK UPDATE + HISTORIAL
     @PutMapping("/bulk-update")
-    public List<Product> updateAll(@RequestBody List<Product> products) {
+    public List<Product> updateAll(
+            @RequestBody List<Product> products,
+            @RequestParam(required = false) Long userId
+    ) {
 
         for (Product p : products) {
 
@@ -72,13 +87,16 @@ public class ProductController {
 
             existing.setStock(p.getStock());
             productRepository.save(existing);
+            if (diff < 0) {
+                productionStockService.discountForProduct(existing.getId(), Math.abs(diff), "Salida manual de producto", userId);
+            }
 
             if (diff != 0) {
                 Inventory inv = new Inventory();
                 inv.setProduct(existing);
                 inv.setQuantity(diff);
                 inv.setLastUpdate(LocalDateTime.now());
-                User user = userRepository.findById(1).orElse(null);
+                User user = userId != null ? userRepository.findById(userId.intValue()).orElse(null) : null;
                 inv.setUser(user);
 
                 inventoryRepository.save(inv);
@@ -100,14 +118,30 @@ public class ProductController {
         );
     }
 
-    @Autowired
-    private UserRepository userRepository;
-
     @PostMapping
-public Product createProduct(@RequestBody Product product) {
-    return productRepository.save(product);
-}
+    public Product createProduct(@RequestBody Product product) {
+        return productRepository.save(product);
+    }
 
+    @PutMapping("/{id}")
+    public Product updateProduct(@PathVariable Long id, @RequestBody Product product) {
+        Product existing = productRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
 
+        existing.setName(product.getName());
+        existing.setPrice(product.getPrice());
+        existing.setImg(product.getImg());
+        existing.setCategory(product.getCategory());
+        existing.setSubCategory(product.getSubCategory());
+        existing.setStock(product.getStock());
+
+        return productRepository.save(existing);
+    }
+
+    @DeleteMapping("/{id}")
+    public void deleteProduct(@PathVariable Long id) {
+        inventoryRepository.deleteAll(inventoryRepository.findByProductId(id));
+        productRepository.deleteById(id);
+    }
 
 }

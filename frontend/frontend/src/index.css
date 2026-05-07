@@ -111,7 +111,7 @@ code {
   padding: 4px 8px;
   background: var(--code-bg);
 }
-/* 🔥 FIX FULL SCREEN */
+/* FIX FULL SCREEN */
 html, body, #root {
   height: 100%;
   margin: 0;
@@ -139,7 +139,7 @@ html {
   color-scheme: light;
 }
 
-/* 🔥 CALENDARIO PRO */
+/* CALENDARIO PRO */
 
 
 .react-calendar__navigation__label {
@@ -219,9 +219,334 @@ html {
   border: none;
 }
 
+/* CALENDARIO STOCK */
+.stock-calendar .react-calendar {
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  padding: 14px;
+  background: #ffffff;
+  box-shadow: none;
+}
+
+.stock-calendar .react-calendar__navigation {
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.stock-calendar .react-calendar__navigation button {
+  min-width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  color: #c2410c;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.stock-calendar .react-calendar__navigation__label {
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 800;
+  text-transform: capitalize;
+}
+
+.stock-calendar .react-calendar__month-view__weekdays {
+  margin-bottom: 8px;
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-decoration: none;
+}
+
+.stock-calendar .react-calendar__month-view__weekdays abbr {
+  text-decoration: none;
+}
+
+.stock-calendar .react-calendar__tile {
+  height: 40px;
+  border-radius: 12px;
+  padding: 0;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.stock-calendar .react-calendar__tile:hover,
+.stock-calendar .react-calendar__tile:focus {
+  background: #fff7ed;
+  color: #c2410c;
+}
+
+.stock-calendar .react-calendar__tile--now {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.stock-calendar .react-calendar__tile--active,
+.stock-calendar .react-calendar__tile--active:hover,
+.stock-calendar .react-calendar__tile--active:focus {
+  background: #ff8a00;
+  color: #ffffff;
+  box-shadow: 0 8px 18px rgba(255, 138, 0, 0.28);
+}
+
+.stock-calendar .react-calendar__month-view__days__day--weekend {
+  color: #ef4444;
+}
+
+.stock-calendar .react-calendar__month-view__days__day--neighboringMonth {
+  color: #cbd5e1;
+}
+
+.stats-calendar .react-calendar {
+  border: none;
+  border-radius: 14px;
+  padding: 8px;
+  background: #ffffff;
+}
+
+.stats-calendar .react-calendar__navigation {
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.stats-calendar .react-calendar__navigation button {
+  min-width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.stats-calendar .react-calendar__navigation button:hover,
+.stats-calendar .react-calendar__navigation button:focus {
+  background: #fff7ed;
+}
+
+.stats-calendar .react-calendar__navigation__label {
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 900;
+  text-transform: capitalize;
+}
+
+.stats-calendar .react-calendar__month-view__weekdays {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 900;
+  text-decoration: none;
+}
+
+.stats-calendar .react-calendar__month-view__weekdays abbr {
+  text-decoration: none;
+}
+
+.stats-calendar .react-calendar__tile {
+  height: 38px;
+  border-radius: 10px;
+  padding: 0;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.stats-calendar .react-calendar__tile:hover,
+.stats-calendar .react-calendar__tile:focus {
+  background: #fff7ed;
+  color: #c2410c;
+}
+
+.stats-calendar .react-calendar__tile--now {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.stats-calendar .react-calendar__tile--active,
+.stats-calendar .react-calendar__tile--active:hover,
+.stats-calendar .react-calendar__tile--active:focus {
+  background: linear-gradient(135deg, #ff8a00, #ef4444);
+  color: #ffffff;
+  box-shadow: 0 8px 18px rgba(239, 68, 68, 0.22);
+}
+
+.stats-calendar .react-calendar__month-view__days__day--neighboringMonth {
+  color: #cbd5e1;
+}
+
+.menu-bubble-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background: #ffffff;
+}
+
+.menu-bubble {
+  position: absolute;
+  display: block;
+  border-radius: 999px;
+  background: radial-gradient(circle at 35% 35%, rgba(255, 255, 255, 0.92), rgba(148, 163, 184, 0.22));
+  box-shadow: inset 0 0 24px rgba(148, 163, 184, 0.2), 0 22px 50px rgba(15, 23, 42, 0.08);
+  animation: menuBubbleFloat 16s ease-in-out infinite;
+}
+
+.menu-bubble-a {
+  width: 220px;
+  height: 220px;
+  left: 8%;
+  top: 16%;
+}
+
+.menu-bubble-b {
+  width: 160px;
+  height: 160px;
+  right: 12%;
+  top: 10%;
+  animation-duration: 19s;
+  animation-delay: -4s;
+}
+
+.menu-bubble-c {
+  width: 280px;
+  height: 280px;
+  right: 20%;
+  bottom: 8%;
+  animation-duration: 22s;
+  animation-delay: -9s;
+}
+
+.menu-bubble-d {
+  width: 130px;
+  height: 130px;
+  left: 42%;
+  bottom: 18%;
+  animation-duration: 18s;
+  animation-delay: -6s;
+}
+
+@keyframes menuBubbleFloat {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 0.58;
+  }
+  45% {
+    transform: translate3d(38px, -28px, 0) scale(1.08);
+    opacity: 0.82;
+  }
+  70% {
+    transform: translate3d(-22px, 24px, 0) scale(0.96);
+    opacity: 0.66;
+  }
+}
+
+.menu-section-bubble {
+  position: absolute;
+  top: 50%;
+  display: block;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.28);
+  transform: translateY(-50%);
+  pointer-events: none;
+  will-change: transform;
+}
+
+.menu-section-bubble-a {
+  left: -40px;
+  width: 96px;
+  height: 96px;
+  animation: menuSectionFloatA 6s ease-in-out infinite;
+}
+
+.menu-section-bubble-b {
+  left: 64px;
+  width: 80px;
+  height: 80px;
+  opacity: 0.85;
+  animation: menuSectionFloatB 7s ease-in-out infinite;
+}
+
+.menu-section-bubble-c {
+  left: 128px;
+  width: 112px;
+  height: 112px;
+  opacity: 0.7;
+  animation: menuSectionFloatC 8s ease-in-out infinite;
+}
+
+@keyframes menuSectionFloatA {
+  0%, 100% { transform: translate(0, -50%); }
+  50% { transform: translate(46px, -50%); }
+}
+
+@keyframes menuSectionFloatB {
+  0%, 100% { transform: translate(0, -50%); }
+  50% { transform: translate(38px, -50%); }
+}
+
+@keyframes menuSectionFloatC {
+  0%, 100% { transform: translate(0, -50%); }
+  50% { transform: translate(52px, -50%); }
+}
+
 @media print {
   body * {
     visibility: hidden;
+  }
+
+  body.box-print-mode #box-print-summary,
+  body.box-print-mode #box-print-summary * {
+    visibility: visible;
+  }
+
+  body.box-print-mode #box-print-summary {
+    display: block !important;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    background: #ffffff;
+  }
+
+  body.box-print-mode section {
+    break-inside: avoid;
+    box-shadow: none !important;
+  }
+
+  body.stats-print-mode #stats-report,
+  body.stats-print-mode #stats-report * {
+    visibility: visible;
+  }
+
+  body.stats-print-mode #stats-report {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    background: #ffffff;
+  }
+
+  body.stats-print-mode .stats-controls {
+    display: none !important;
+  }
+
+  body.stats-print-mode .stats-screen-only {
+    display: none !important;
+  }
+
+  body.stats-print-mode .stats-print-only {
+    display: block !important;
+  }
+
+  body.stats-print-mode .stats-report header {
+    position: static;
+    background: #ffffff;
+  }
+
+  body.stats-print-mode section {
+    break-inside: avoid;
+    box-shadow: none !important;
   }
 
   #receipt, #receipt * {
@@ -235,4 +560,56 @@ html {
     width: 280px;
     margin: 0 auto;
   }
+
+  body.invoice-print-mode #receipt,
+  body.invoice-print-mode #receipt * {
+    visibility: hidden;
+  }
+
+  body.invoice-print-mode #invoice-print,
+  body.invoice-print-mode #invoice-print * {
+    visibility: visible;
+  }
+
+  body.invoice-print-mode #invoice-print {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 720px;
+    max-width: 100%;
+    margin: 0;
+    box-shadow: none;
+  }
+
+  body.stats-print-mode #receipt,
+  body.stats-print-mode #receipt *,
+  body.stats-print-mode #invoice-print,
+  body.stats-print-mode #invoice-print * {
+    visibility: hidden;
+  }
+
+  body.stats-print-mode #stats-report,
+  body.stats-print-mode #stats-report * {
+    visibility: visible;
+  }
+}
+.menu-bubble-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background: #ffffff;
+}
+.menu-bubble {
+  animation: menuBubbleFloat 16s ease-in-out infinite;
+  animation-fill-mode: both;
+  will-change: transform;
+}
+.menu-bubble:nth-child(odd) {
+  animation-delay: -5s;
+}
+
+.menu-bubble:nth-child(even) {
+  animation-delay: -10s;
 }

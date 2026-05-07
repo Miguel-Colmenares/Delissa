@@ -69,7 +69,7 @@ export default function SaleModal({ open, onClose, onConfirm, total, cart}) {
 
   if (form.paymentMethod === "CASH") {
     if (!cashData.received || Number(cashData.received) < total) {
-      alert("❌ El dinero no es suficiente");
+      alert("El dinero no es suficiente");
       return;
     }
   }
@@ -88,7 +88,6 @@ export default function SaleModal({ open, onClose, onConfirm, total, cart}) {
         : null
   });
 
-  // 🔥 GUARDAR DATOS DEL RECIBO
   setReceiptData({
   total,
   received: Number(cashData.received || 0),
@@ -96,7 +95,6 @@ export default function SaleModal({ open, onClose, onConfirm, total, cart}) {
   paymentMethod: form.paymentMethod,
   items: cart
 });
-  // 🔥 IR AL STEP 3
   setStep(3);
 };
 
@@ -104,7 +102,6 @@ export default function SaleModal({ open, onClose, onConfirm, total, cart}) {
   <AnimatePresence>
     {open && (
       <>
-        {/* 🔥 FONDO */}
         <motion.div
           className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[99999] overflow-hidden"
           initial={{ opacity: 0 }}
@@ -112,7 +109,6 @@ export default function SaleModal({ open, onClose, onConfirm, total, cart}) {
           exit={{ opacity: 0 }}
         />
 
-        {/* 🔥 MODAL */}
         <motion.div
           className="fixed inset-0 z-[99999] flex items-start justify-center overflow-hidden py-10"
           initial={{ opacity: 0, scale: 0.8, y: 40 }}
@@ -127,7 +123,6 @@ export default function SaleModal({ open, onClose, onConfirm, total, cart}) {
       : "overflow-hidden"
   }`}
 >
-            {/* 🔥 STEP PROGRESS PRO */}
 <div className="flex items-center justify-between mb-6">
 
   {["Tipo", "Pago", "Recibo"].map((label, index) => {
@@ -140,7 +135,6 @@ export default function SaleModal({ open, onClose, onConfirm, total, cart}) {
 
         <div className="flex flex-col items-center w-full">
 
-          {/* 🔥 CÍRCULO */}
           <motion.div
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{
@@ -161,7 +155,6 @@ export default function SaleModal({ open, onClose, onConfirm, total, cart}) {
             {isCompleted ? "✔" : current}
           </motion.div>
 
-          {/* 🔥 LABEL */}
           <span
             className={`text-xs mt-1 ${
               isActive ? "text-black font-semibold" : "text-gray-500"
@@ -171,7 +164,6 @@ export default function SaleModal({ open, onClose, onConfirm, total, cart}) {
           </span>
         </div>
 
-        {/* 🔥 LINEA */}
         {index < 2 && (
           <motion.div
             initial={{ width: 0 }}
@@ -191,7 +183,6 @@ export default function SaleModal({ open, onClose, onConfirm, total, cart}) {
   })}
 </div>
 
-            {/* 🔙 */}
             {step === 2 && (
               <button
                 onClick={handleBack}
@@ -201,7 +192,6 @@ export default function SaleModal({ open, onClose, onConfirm, total, cart}) {
               </button>
             )}
 
-            {/* 🧾 STEP 1 */}
             {step === 1 && (
               <>
                 <h2 className="text-xl font-bold mb-6 text-center text-gray-800">
@@ -213,20 +203,19 @@ export default function SaleModal({ open, onClose, onConfirm, total, cart}) {
                     onClick={() => handleSelectType("normal")}
                     className="bg-gradient-to-r from-[#FF9F1C] to-[#FF4040] text-white py-3 rounded-xl shadow hover:scale-[1.02]"
                   >
-                    🧾 Factura Normal
+                    Factura Normal
                   </button>
 
                   <button
                     onClick={() => handleSelectType("empresa")}
                     className="bg-gray-100 py-3 rounded-xl shadow hover:bg-gray-200"
                   >
-                    🏢 Factura Empresarial
+                    Factura Empresarial
                   </button>
                 </div>
               </>
             )}
 
-            {/* 💳 NORMAL */}
             {step === 2 && type === "normal" && (
               <>
                 <h2 className="text-lg font-bold mb-4 text-gray-800">
@@ -289,7 +278,6 @@ export default function SaleModal({ open, onClose, onConfirm, total, cart}) {
               </>
             )}
 
-            {/* 🏢 EMPRESARIAL */}
             {step === 2 && type === "empresa" && (
               <>
                 <h2 className="text-lg font-bold mb-4 text-gray-800">
@@ -303,7 +291,6 @@ export default function SaleModal({ open, onClose, onConfirm, total, cart}) {
                   <input name="email" placeholder="Correo" onChange={handleChange} className="p-3 rounded border"/>
                   <input name="address" placeholder="Dirección" onChange={handleChange} className="p-3 rounded border"/>
 
-                  {/* 🔥 CORREGIDO */}
                   <input
                     value={formatCOP(total)}
                     readOnly
@@ -355,7 +342,6 @@ export default function SaleModal({ open, onClose, onConfirm, total, cart}) {
               </>
             )}
 
-            {/* ❌ */}
             <button
               onClick={onClose}
               className="mt-4 text-sm text-gray-400 hover:text-black w-full"
@@ -363,7 +349,6 @@ export default function SaleModal({ open, onClose, onConfirm, total, cart}) {
               Cancelar
             </button>
 
-            {/* 🧾 STEP 3 → RECIBO */}
             {step === 3 && receiptData && (
               <>
                 <div className="flex flex-col items-center">
@@ -447,7 +432,7 @@ export default function SaleModal({ open, onClose, onConfirm, total, cart}) {
                     <hr className="border-dashed border-gray-400 my-2" />
 
                     <div className="text-center text-[10px] mt-2">
-                      <p>Gracias por tu compra ❤️</p>
+                      <p>Gracias por tu compra</p>
                       <p>Vuelve pronto</p>
                     </div>
 
@@ -458,7 +443,7 @@ export default function SaleModal({ open, onClose, onConfirm, total, cart}) {
                       onClick={() => window.print()}
                       className="flex-1 bg-black text-white py-2 rounded-xl"
                     >
-                      🖨️ Imprimir
+                      Imprimir
                     </button>
 
                     <button

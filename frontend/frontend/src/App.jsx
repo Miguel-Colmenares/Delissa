@@ -5,13 +5,15 @@ import Login from "./pages/login";
 import Dashboard from "./pages/Dashboard";
 
 function App() {
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => sessionStorage.getItem("delissaLoaderShown") !== "true");
 
   useEffect(() => {
+    if (!loading) return;
     setTimeout(() => {
+      sessionStorage.setItem("delissaLoaderShown", "true");
       setLoading(false);
     }, 2500);
-  }, []);
+  }, [loading]);
 
   if (loading) {
     return (
@@ -52,7 +54,7 @@ function App() {
     );
   }
 
-  // 🔥 AQUÍ YA VAN LAS RUTAS
+  // Rutas principales
   return (
     <BrowserRouter>
       <Routes>

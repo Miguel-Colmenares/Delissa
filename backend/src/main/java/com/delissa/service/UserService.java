@@ -5,6 +5,7 @@ import com.delissa.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import java.util.List;
 
 @Service
 public class UserService {
@@ -55,5 +56,35 @@ public class UserService {
         }
 
         return user;
+    }
+
+    public List<User> listar() {
+        return userRepository.findAll();
+    }
+
+    public User actualizar(Integer id, User payload) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+
+        user.setNombre(payload.getNombre());
+        user.setCedula(payload.getCedula());
+        user.setCorreo(payload.getCorreo());
+
+        if (payload.getRol() != null && !payload.getRol().isBlank()) {
+            if (!payload.getRol().equals("admin") && !payload.getRol().equals("empleado")) {
+                throw new RuntimeException("Rol invalido");
+            }
+            user.setRol(payload.getRol());
+        }
+
+        if (payload.getPassword() != null && !payload.getPassword().isBlank()) {
+            user.setPassword(passwordEncoder.encode(payload.getPassword()));
+        }
+
+        return userRepository.save(user);
+    }
+
+    public void eliminar(Integer id) {
+        userRepository.deleteById(id);
     }
 }
