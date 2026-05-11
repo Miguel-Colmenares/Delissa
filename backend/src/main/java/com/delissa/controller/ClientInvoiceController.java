@@ -47,7 +47,7 @@ public class ClientInvoiceController {
     }
 
     @PostMapping("/{saleId}/cancel")
-    public Sale cancelInvoice(@PathVariable Integer saleId) {
-        return saleService.cancelInvoice(saleId);
+    public Sale cancelInvoice(@PathVariable Integer saleId, @RequestBody(required = false) Sale payload) {
+        return saleService.cancelInvoice(saleId, payload);
     }
 }

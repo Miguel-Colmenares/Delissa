@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
+import logo from "../assets/delissa_Logo.png";
 import {
   AlertTriangle,
   Banknote,
@@ -22,7 +24,7 @@ import {
 
 const API = "http://localhost:8080";
 
-export default function Invoices({ formatCOP }) {
+export default function Invoices({ formatCOP, user }) {
   const money = formatCOP || formatCurrency;
   const [sales, setSales] = useState([]);
   const [clientInvoices, setClientInvoices] = useState([]);
@@ -33,6 +35,7 @@ export default function Invoices({ formatCOP }) {
   const [paymentFilter, setPaymentFilter] = useState("all");
   const [dateFilter, setDateFilter] = useState("all");
   const [exactDate, setExactDate] = useState("");
+  const [editedFilter, setEditedFilter] = useState("all");
   const [loading, setLoading] = useState(true);
   const [editInvoice, setEditInvoice] = useState(null);
 
@@ -105,9 +108,14 @@ export default function Invoices({ formatCOP }) {
         (dateFilter === "month" && diffDays(today, invoiceDate) <= 30) ||
         (dateFilter === "exact" && exactDate && sameDay(invoiceDate, new Date(`${exactDate}T00:00:00`)));
 
-      return matchesSearch && matchesType && matchesStatus && matchesPayment && matchesDate;
+      const matchesEdited =
+        editedFilter === "all" ||
+        (editedFilter === "edited" && invoice.lastEditedAt) ||
+        (editedFilter === "not-edited" && !invoice.lastEditedAt);
+
+      return matchesSearch && matchesType && matchesStatus && matchesPayment && matchesDate && matchesEdited;
     });
-  }, [dateFilter, exactDate, invoiceRows, paymentFilter, search, statusFilter, typeFilter]);
+  }, [dateFilter, exactDate, editedFilter, invoiceRows, paymentFilter, search, statusFilter, typeFilter]);
 
   useEffect(() => {
     if (!filteredRows.length) {
@@ -167,9 +175,7 @@ export default function Invoices({ formatCOP }) {
   };
 
   const printInvoice = () => {
-    document.body.classList.add("invoice-print-mode");
     window.print();
-    setTimeout(() => document.body.classList.remove("invoice-print-mode"), 250);
   };
 
   const copyInvoice = async () => {
@@ -182,7 +188,14 @@ export default function Invoices({ formatCOP }) {
     const shouldCancel = window.confirm("Se anulara la factura y se devolvera el stock vendido. ¿Continuar?");
     if (!shouldCancel) return;
 
-    await fetch(`${API}/invoices/${selectedInvoice.id}/cancel`, { method: "POST" });
+    await fetch(`${API}/invoices/${selectedInvoice.id}/cancel`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        lastEditedBy: user?.id ? { id: user.id } : null,
+        lastEditReason: "Anulacion de factura"
+      })
+    });
     await loadInvoices();
   };
 
@@ -201,6 +214,8 @@ export default function Invoices({ formatCOP }) {
             address: draft.address
           }
         : null,
+      lastEditedBy: user?.id ? { id: user.id } : null,
+      lastEditReason: draft.lastEditReason || "Edicion de factura",
       details: itemsChanged
         ? draft.items.map(item => ({
             quantity: Number(item.quantity || 0),
@@ -285,7 +300,7 @@ export default function Invoices({ formatCOP }) {
           </div>
         </div>
 
-        <div className="grid gap-3 xl:grid-cols-[minmax(280px,1fr)_180px_180px_180px_180px]">
+        <div className="grid gap-3 xl:grid-cols-[minmax(280px,1fr)_180px_180px_180px_180px_180px]">
           <div className="relative rounded-2xl bg-gradient-to-r from-[#FF9F1C] to-[#FF4040] p-[1px] shadow-sm">
             <Search className="absolute left-4 top-1/2 z-10 -translate-y-1/2 text-[#FF9F1C]" size={18} />
             <input
@@ -317,6 +332,14 @@ export default function Invoices({ formatCOP }) {
             <option value="month">Ultimos 30 dias</option>
             <option value="exact">Fecha especifica</option>
           </SelectControl>
+
+          {user?.rol === "admin" && (
+            <SelectControl value={editedFilter} onChange={setEditedFilter}>
+              <option value="all">Todas las facturas</option>
+              <option value="edited">Editadas</option>
+              <option value="not-edited">No editadas</option>
+            </SelectControl>
+          )}
 
           <input
             type="date"
@@ -430,6 +453,7 @@ export default function Invoices({ formatCOP }) {
         <InvoiceDetail
           invoice={selectedInvoice}
           money={money}
+          user={user}
           onCopy={copyInvoice}
           onPrint={printInvoice}
         />
@@ -448,7 +472,7 @@ export default function Invoices({ formatCOP }) {
   );
 }
 
-function InvoiceDetail({ invoice, money, onCopy, onPrint }) {
+function InvoiceDetail({ invoice, money, user, onCopy, onPrint }) {
   if (!invoice) {
     return (
       <aside className="rounded-[24px] border border-dashed border-slate-200 bg-white p-6 text-center shadow-sm">
@@ -459,73 +483,189 @@ function InvoiceDetail({ invoice, money, onCopy, onPrint }) {
     );
   }
 
+  const plainFormat = (value) => {
+    if (value === null || value === undefined) return "0";
+    return new Intl.NumberFormat("es-CO").format(Number(value));
+  };
+
+  const ivaRate = invoice.subtotal > 0 ? Math.round((invoice.tax / invoice.subtotal) * 100) : 0;
+
   return (
-    <aside
-      id="invoice-print"
-      className="sticky top-4 flex max-h-[calc(100vh-2rem)] min-h-[calc(100vh-2rem)] self-start overflow-hidden rounded-[24px] border border-slate-300 bg-[#e8edf3] p-5 shadow-sm"
-    >
-      <div className="flex min-h-0 w-full flex-col">
-        <div className="shrink-0">
-          <div className="mb-5 flex items-start justify-between gap-3">
-            <div>
-              <span className="inline-flex rounded-full bg-white px-3 py-1 text-xs font-bold uppercase tracking-wide text-orange-700 ring-1 ring-orange-200">
-                {typeLabel(invoice.type)}
-              </span>
-              <h2 className="m-0 mt-3 text-2xl font-black tracking-tight text-slate-950">{invoice.number}</h2>
-              <p className="text-sm text-slate-500">{formatDateTime(invoice.date)}</p>
+    <>
+      <aside
+        id="invoice-print"
+        className="sticky top-4 flex max-h-[calc(100vh-2rem)] min-h-[calc(100vh-2rem)] self-start overflow-hidden rounded-[24px] border border-slate-300 bg-[#e8edf3] p-5 shadow-sm"
+      >
+        <div className="flex min-h-0 w-full flex-col">
+          <div className="shrink-0">
+            <div className="mb-5 flex items-start justify-between gap-3">
+              <div>
+                <span className="inline-flex rounded-full bg-white px-3 py-1 text-xs font-bold uppercase tracking-wide text-orange-700 ring-1 ring-orange-200">
+                  {typeLabel(invoice.type)}
+                </span>
+                <h2 className="m-0 mt-3 text-2xl font-black tracking-tight text-slate-950">{invoice.number}</h2>
+                <p className="text-sm text-slate-500">{formatDateTime(invoice.date)}</p>
+              </div>
+              <StatusBadge status={invoice.status} />
             </div>
-            <StatusBadge status={invoice.status} />
+
+            <div className="grid grid-cols-2 gap-3">
+              <MiniStat label="Cliente" value={invoice.clientName} panel />
+              <MiniStat label="NIT" value={invoice.nit || "No aplica"} panel />
+              <MiniStat label="Pago" value={paymentLabel(invoice.paymentMethod)} panel />
+              <MiniStat label="Transaccion" value={shortId(invoice.transactionId)} panel />
+            </div>
+
+            {invoice.lastEditedAt && (
+              <div className="mt-3 rounded-2xl bg-white p-4 text-sm text-slate-600 ring-1 ring-slate-200">
+                <p className="text-xs font-black uppercase tracking-wide text-slate-400">Ultima edicion</p>
+                <p className="mt-1 font-bold text-slate-900">{invoice.lastEditedBy?.nombre || "Usuario no registrado"}</p>
+                <p className="text-xs font-semibold text-slate-500">{formatDateTime(invoice.lastEditedAt)}</p>
+                {invoice.lastEditReason && <p className="mt-2 text-sm font-semibold text-slate-600">{invoice.lastEditReason}</p>}
+              </div>
+            )}
+
+            {(invoice.email || invoice.address) && (
+              <div className="mt-3 rounded-2xl bg-white p-4 text-sm text-slate-600 ring-1 ring-slate-200">
+                {invoice.email && <p className="font-bold">{invoice.email}</p>}
+                {invoice.address && <p>{invoice.address}</p>}
+              </div>
+            )}
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <MiniStat label="Cliente" value={invoice.clientName} panel />
-            <MiniStat label="NIT" value={invoice.nit || "No aplica"} panel />
-            <MiniStat label="Pago" value={paymentLabel(invoice.paymentMethod)} panel />
-            <MiniStat label="Transaccion" value={shortId(invoice.transactionId)} panel />
-          </div>
-
-          {(invoice.email || invoice.address) && (
-            <div className="mt-3 rounded-2xl bg-white p-4 text-sm text-slate-600 ring-1 ring-slate-200">
-              {invoice.email && <p className="font-bold">{invoice.email}</p>}
-              {invoice.address && <p>{invoice.address}</p>}
-            </div>
-          )}
-        </div>
-
-        <div className="mt-5 min-h-0 flex-1">
-          <h3 className="m-0 mb-3 text-sm font-black uppercase tracking-wide text-slate-500">Productos vendidos</h3>
-          <div className="h-full space-y-2 overflow-y-auto pr-1">
-            {invoice.items.map(item => (
-              <div key={item.id || item.productName} className="rounded-2xl border border-slate-200 bg-white p-3">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="m-0 break-words text-sm font-bold leading-snug text-slate-850">{item.productName || "Producto"}</p>
-                    <p className="break-words text-xs leading-snug text-slate-400">{item.quantity} x {money(item.unitPrice)}</p>
+          <div className="mt-5 min-h-0 flex-1">
+            <h3 className="m-0 mb-3 text-sm font-black uppercase tracking-wide text-slate-500">Productos vendidos</h3>
+            <div className="h-full space-y-2 overflow-y-auto pr-1">
+              {invoice.items.map(item => (
+                <div key={item.id || item.productName} className="rounded-2xl border border-slate-200 bg-white p-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="m-0 break-words text-sm font-bold leading-snug text-slate-850">{item.productName || "Producto"}</p>
+                      <p className="break-words text-xs leading-snug text-slate-400">{item.quantity} x {money(item.unitPrice)}</p>
+                    </div>
+                    <span className="shrink-0 font-black text-slate-950">{money(item.subtotal)}</span>
                   </div>
-                  <span className="shrink-0 font-black text-slate-950">{money(item.subtotal)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-5 shrink-0">
+            <div className="rounded-2xl bg-slate-950 p-4 text-white">
+              <TotalLine label="Subtotal" value={money(invoice.subtotal)} />
+              <TotalLine label="Impuesto" value={money(invoice.tax)} />
+              <div className="mt-2 flex items-center justify-between border-t border-white/15 pt-3">
+                <span className="text-sm font-semibold text-white/70">Total</span>
+                <span className="text-2xl font-black">{money(invoice.total)}</span>
+              </div>
+            </div>
+
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <ActionButton onClick={onPrint} icon={Printer} label="Imprimir" tone="dark" />
+              <ActionButton onClick={onCopy} icon={Copy} label="Copiar" tone="light" />
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      {createPortal(
+        <div
+          id="receipt"
+          className="receipt-print-hidden bg-white w-[300px] p-4 text-[12px] font-mono text-black"
+        >
+          <div className="text-center mb-2">
+            <img src={logo} alt="logo" className="w-20 mb-2 mx-auto" />
+            <p className="font-bold text-sm">DELISSA S.A.S</p>
+          </div>
+
+          <div className="text-left text-[11px]">
+            <p>NIT: 21.176.659</p>
+            <p>Villavicencio - Meta</p>
+            <p>Tel: 314 451 9180</p>
+            {user?.nombre && <p className="mt-1 text-[10px]">Vendedor: {user.nombre}</p>}
+          </div>
+
+          {invoice.type === "EMPRESARIAL" && invoice.clientName && (
+            <>
+              <hr className="border-dashed border-gray-400 my-2" />
+              <div className="mb-1">
+                <p className="font-bold text-[10px] uppercase">Cliente empresarial</p>
+                <p className="text-[11px]">{invoice.clientName}</p>
+                {invoice.nit && <p className="text-[11px]">NIT: {invoice.nit}</p>}
+                {invoice.email && <p className="text-[11px]">{invoice.email}</p>}
+                {invoice.address && <p className="text-[11px]">{invoice.address}</p>}
+              </div>
+            </>
+          )}
+
+          <hr className="border-dashed border-gray-400 my-2" />
+
+          <div className="space-y-1">
+            <div className="flex justify-between">
+              <span>Factura:</span>
+              <span>{invoice.number}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Fecha:</span>
+              <span>{formatDateTime(invoice.date)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Pago:</span>
+              <span>{paymentLabel(invoice.paymentMethod)}</span>
+            </div>
+          </div>
+
+          <hr className="border-dashed border-gray-400 my-2" />
+
+          <div>
+            <div className="flex justify-between font-bold text-[11px]">
+              <span>Producto</span>
+              <span>Total</span>
+            </div>
+
+            {invoice.items.map((item, i) => (
+              <div key={i} className="mb-1">
+                <div className="flex justify-between">
+                  <span>{item.productName}</span>
+                  <span>{plainFormat(item.subtotal)}</span>
+                </div>
+                <div className="flex justify-between text-[10px] text-gray-500">
+                  <span>{item.quantity} x {plainFormat(item.unitPrice)}</span>
                 </div>
               </div>
             ))}
           </div>
-        </div>
 
-        <div className="mt-5 shrink-0">
-          <div className="rounded-2xl bg-slate-950 p-4 text-white">
-            <TotalLine label="Subtotal" value={money(invoice.subtotal)} />
-            <TotalLine label="Impuesto" value={money(invoice.tax)} />
-            <div className="mt-2 flex items-center justify-between border-t border-white/15 pt-3">
-              <span className="text-sm font-semibold text-white/70">Total</span>
-              <span className="text-2xl font-black">{money(invoice.total)}</span>
+          <hr className="border-dashed border-gray-400 my-2" />
+
+          <div className="space-y-1">
+            <div className="flex justify-between">
+              <span>Subtotal</span>
+              <span>{plainFormat(invoice.subtotal)}</span>
+            </div>
+
+            <div className="flex justify-between text-gray-600">
+              <span>IVA ({ivaRate}%):</span>
+              <span>{plainFormat(invoice.tax)}</span>
+            </div>
+
+            <div className="flex justify-between font-bold text-lg">
+              <span>Total:</span>
+              <span>{plainFormat(invoice.total)}</span>
             </div>
           </div>
 
-          <div className="mt-4 grid grid-cols-2 gap-2">
-            <ActionButton onClick={onPrint} icon={Printer} label="Imprimir" tone="dark" />
-            <ActionButton onClick={onCopy} icon={Copy} label="Copiar" tone="light" />
+          <hr className="border-dashed border-gray-400 my-2" />
+
+          <div className="text-center text-[10px] mt-2">
+            <p>Gracias por tu compra</p>
+            <p className="mt-2 text-[9px] text-gray-400">Los productos no tienen cambio ni devolucion.</p>
+            <p className="text-[9px] text-gray-400">&copy; 2026 DELISSA S.A.S - Todos los derechos reservados.</p>
           </div>
-        </div>
-      </div>
-    </aside>
+        </div>,
+        document.body
+      )}
+    </>
   );
 }
 
@@ -615,6 +755,19 @@ function InvoiceEditModal({ invoice, money, onChange, onClose, onSubmit }) {
               <p>Guardar como anulada devolvera el stock vendido si todavia no estaba anulada.</p>
             </div>
           )}
+
+          <div className="mt-4">
+            <label>
+              <span className="mb-1.5 block text-xs font-black uppercase tracking-wide text-slate-500">Motivo de edicion</span>
+              <textarea
+                value={invoice.lastEditReason || ""}
+                onChange={(e) => onChange({ ...invoice, lastEditReason: e.target.value })}
+                rows={3}
+                className="min-h-24 w-full resize-none rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700 outline-none focus:border-amber-300 focus:bg-white focus:ring-4 focus:ring-amber-100"
+                placeholder="Ej: correccion de cantidad, cambio de datos del cliente, anulacion solicitada..."
+              />
+            </label>
+          </div>
         </div>
 
         <div className="flex justify-end gap-2 border-t border-slate-100 px-6 py-4">
@@ -791,7 +944,10 @@ function normalizeInvoiceRow(sale, clientInvoice) {
           unitPrice: Number(item.unitPrice || 0),
           subtotal: Number(item.subtotal || 0)
         }))
-      : []
+      : [],
+    lastEditedAt: sale.lastEditedAt || null,
+    lastEditReason: sale.lastEditReason || "",
+    lastEditedBy: sale.lastEditedBy || null
   };
 }
 

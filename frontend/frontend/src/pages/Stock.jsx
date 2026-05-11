@@ -55,6 +55,7 @@ const emptyProductionItem = {
 };
 
 export default function Stock({ user }) {
+  const isAdmin = user?.rol === "admin";
   const [inventoryMode, setInventoryMode] = useState("local");
   const [products, setProducts] = useState([]);
   const [originalProducts, setOriginalProducts] = useState([]);
@@ -71,6 +72,7 @@ export default function Stock({ user }) {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [openInventoryModal, setOpenInventoryModal] = useState(false);
   const [newProduct, setNewProduct] = useState(emptyProduct);
+  const [stockPrintHtml, setStockPrintHtml] = useState("");
 
   useEffect(() => {
     const loadProducts = async () => {
@@ -199,21 +201,12 @@ export default function Stock({ user }) {
       return acc;
     }, {});
 
-    const printWindow = window.open("", "_blank");
-    printWindow.document.write(`
-      <html><head><title>Resumen de Movimientos - ${date.toLocaleDateString("es-CO")}</title>
-      <style>
-        body { font-family: Arial, sans-serif; padding: 40px; }
-        h1 { font-size: 20px; margin-bottom: 5px; }
-        .date { color: #666; margin-bottom: 30px; }
-        table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
-        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; font-size: 13px; }
-        th { background: #f5f5f5; }
-        .summary-row { background: #fafafa; }
-        .total { font-weight: bold; background: #fff3e0; }
-        .in { color: #16a34a; }
-        .out { color: #dc2626; }
-      </style></head><body>
+    const cleanup = () => {
+      document.body.classList.remove("stock-print-mode");
+      window.removeEventListener("afterprint", cleanup);
+    };
+
+    setStockPrintHtml(`
       <h1>Resumen de Movimientos - Productos Local</h1>
       <p class="date">${date.toLocaleDateString("es-CO", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</p>
       <table>
@@ -223,8 +216,8 @@ export default function Stock({ user }) {
             data.movements.map(m => `
               <tr class="summary-row">
                 <td>${name}</td>
-                <td class="in">${data.incoming > 0 ? `+${data.incoming}` : "-"}</td>
-                <td class="out">${data.outgoing > 0 ? `-${data.outgoing}` : "-"}</td>
+                <td class="in">${m.quantity > 0 ? `+${m.quantity}` : "-"}</td>
+                <td class="out">${m.quantity < 0 ? `${m.quantity}` : "-"}</td>
                 <td>${new Date(m.lastUpdate).toLocaleTimeString("es-CO")}</td>
                 <td>${m.user?.nombre || "Sistema"}</td>
                 <td>${m.reason || "-"}</td>
@@ -233,13 +226,17 @@ export default function Stock({ user }) {
           ).join("")}
         </tbody>
       </table>
-      </body></html>
     `);
-    printWindow.document.close();
-    printWindow.print();
+    document.body.classList.add("stock-print-mode");
+    window.addEventListener("afterprint", cleanup);
+    setTimeout(() => {
+      window.print();
+      setTimeout(cleanup, 600);
+    }, 80);
   };
 
   const deleteProduct = async (id) => {
+    if (!isAdmin) return alert("Solo un administrador puede eliminar productos.");
     const shouldDelete = window.confirm("¿Quieres eliminar este producto del inventario?");
     if (!shouldDelete) return;
 
@@ -575,9 +572,11 @@ export default function Stock({ user }) {
                           <IconButton label="Sumar stock" tone="emerald" onClick={() => adjustProductStock(product.id, 1)}>
                             <Plus size={15} />
                           </IconButton>
-                          <IconButton label="Eliminar producto" tone="slate" onClick={() => deleteProduct(product.id)}>
-                            <Trash2 size={15} />
-                          </IconButton>
+                          {isAdmin && (
+                            <IconButton label="Eliminar producto" tone="slate" onClick={() => deleteProduct(product.id)}>
+                              <Trash2 size={15} />
+                            </IconButton>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -716,6 +715,7 @@ export default function Stock({ user }) {
           onClose={() => setOpenModal(false)}
           onSubmit={createProduct}
           submitLabel="Crear"
+          products={products}
         />
       )}
 
@@ -730,6 +730,7 @@ export default function Stock({ user }) {
           onSubmit={updateProductDetails}
           submitLabel="Guardar cambios"
           lockStock
+          products={products}
         />
       )}
 
@@ -739,6 +740,10 @@ export default function Stock({ user }) {
           onClose={() => setOpenInventoryModal(false)}
         />
       )}
+
+      <section className="stock-print-summary hidden bg-white p-8 text-slate-950">
+        <div dangerouslySetInnerHTML={{ __html: stockPrintHtml }} />
+      </section>
     </div>
   );
 }
@@ -749,6 +754,7 @@ function toLocalDateTimeParam(date) {
 }
 
 function ProductionInventoryView({ user }) {
+  const isAdmin = user?.rol === "admin";
   const [items, setItems] = useState([]);
   const [products, setProducts] = useState([]);
   const [movements, setMovements] = useState([]);
@@ -758,6 +764,7 @@ function ProductionInventoryView({ user }) {
   const [selectedItem, setSelectedItem] = useState(null);
   const [formItem, setFormItem] = useState(null);
   const [date, setDate] = useState(new Date());
+  const [stockPrintHtml, setStockPrintHtml] = useState("");
 
   async function loadMovements() {
     const start = new Date();
@@ -774,30 +781,19 @@ function ProductionInventoryView({ user }) {
 
   useEffect(() => {
     const loadInitial = async () => {
-      const start = new Date();
-      start.setHours(0, 0, 0, 0);
-      const end = new Date();
-      end.setHours(23, 59, 59, 999);
-
-      const [itemsRes, productsRes, movementsRes] = await Promise.all([
+      const [itemsRes, productsRes] = await Promise.all([
         fetch(`${API}/production-items`),
-        fetch(`${API}/products`),
-        fetch(`${API}/production-items/inventory?start=${start.toISOString()}&end=${end.toISOString()}`)
+        fetch(`${API}/products`)
       ]);
 
       const itemsData = await itemsRes.json();
       const productsData = await productsRes.json();
-      const movementsData = await movementsRes.json();
 
       setItems(Array.isArray(itemsData) ? itemsData : []);
       setProducts(Array.isArray(productsData) ? productsData : []);
-      setMovements(Array.isArray(movementsData) ? movementsData : []);
     };
 
     loadInitial();
-  }, []);
-
-  useEffect(() => {
     loadMovements();
   }, [date]);
 
@@ -860,8 +856,12 @@ function ProductionInventoryView({ user }) {
       return acc;
     }, {});
 
-    const printWindow = window.open("", "_blank");
-    printWindow.document.write(`
+    const cleanup = () => {
+      document.body.classList.remove("stock-print-mode");
+      window.removeEventListener("afterprint", cleanup);
+    };
+
+    setStockPrintHtml(`
       <html><head><title>Resumen de Movimientos - ${date.toLocaleDateString("es-CO")}</title>
       <style>
         body { font-family: Arial, sans-serif; padding: 40px; }
@@ -884,8 +884,8 @@ function ProductionInventoryView({ user }) {
             data.movements.map(m => `
               <tr class="summary-row">
                 <td>${name}</td>
-                <td class="in">${data.incoming > 0 ? `+${data.incoming}` : "-"}</td>
-                <td class="out">${data.outgoing > 0 ? `-${data.outgoing}` : "-"}</td>
+                <td class="in">${m.quantity > 0 ? `+${formatQty(m.quantity)}` : "-"}</td>
+                <td class="out">${m.quantity < 0 ? formatQty(m.quantity) : "-"}</td>
                 <td>${new Date(m.lastUpdate).toLocaleTimeString("es-CO")}</td>
                 <td>${m.user?.nombre || "Sistema"}</td>
                 <td>${m.reason || "-"}</td>
@@ -896,8 +896,12 @@ function ProductionInventoryView({ user }) {
       </table>
       </body></html>
     `);
-    printWindow.document.close();
-    printWindow.print();
+    document.body.classList.add("stock-print-mode");
+    window.addEventListener("afterprint", cleanup);
+    setTimeout(() => {
+      window.print();
+      setTimeout(cleanup, 600);
+    }, 80);
   };
 
   const saveItem = async () => {
@@ -933,6 +937,7 @@ function ProductionInventoryView({ user }) {
   };
 
   const deleteItem = async (id) => {
+    if (!isAdmin) return alert("Solo un administrador puede eliminar ingredientes.");
     const shouldDelete = window.confirm("¿Quieres eliminar este ingrediente?");
     if (!shouldDelete) return;
 
@@ -1078,9 +1083,11 @@ function ProductionInventoryView({ user }) {
                         <IconButton label="Sumar" tone="emerald" onClick={() => adjustItem(item, 1)}>
                           <Plus size={15} />
                         </IconButton>
-                        <IconButton label="Eliminar" tone="slate" onClick={() => deleteItem(item.id)}>
-                          <Trash2 size={15} />
-                        </IconButton>
+                        {isAdmin && (
+                          <IconButton label="Eliminar" tone="slate" onClick={() => deleteItem(item.id)}>
+                            <Trash2 size={15} />
+                          </IconButton>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -1185,6 +1192,10 @@ function ProductionInventoryView({ user }) {
           onSubmit={saveItem}
         />
       )}
+
+      <section className="stock-print-summary hidden bg-white p-8 text-slate-950">
+        <div dangerouslySetInnerHTML={{ __html: stockPrintHtml }} />
+      </section>
     </div>
   );
 }
@@ -1803,8 +1814,16 @@ function MiniStat({ label, value }) {
   );
 }
 
-function ProductFormModal({ title, eyebrow, description, product, onChange, onClose, onSubmit, submitLabel, lockStock = false }) {
+function ProductFormModal({ title, eyebrow, description, product, onChange, onClose, onSubmit, submitLabel, lockStock = false, products = [] }) {
   const canCreate = product.name?.trim() && product.price !== "" && product.category?.trim();
+
+  const existingCategories = [...new Set(products.map(p => p.category).filter(Boolean))];
+  const existingSubCategories = product.category
+    ? [...new Set(products.filter(p => p.category === product.category).map(p => p.subCategory).filter(Boolean))]
+    : [];
+
+  const catId = "cat-list-" + title.replace(/\s/g, "");
+  const subId = "sub-list-" + title.replace(/\s/g, "");
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm">
@@ -1834,8 +1853,32 @@ function ProductFormModal({ title, eyebrow, description, product, onChange, onCl
         <div className="grid gap-3 px-6 py-5 sm:grid-cols-2">
           <Field label="Nombre" value={product.name} onChange={(value) => onChange({ ...product, name: value })} />
           <Field label="Precio" type="number" value={product.price} onChange={(value) => onChange({ ...product, price: value })} />
-          <Field label="Categoría" value={product.category} onChange={(value) => onChange({ ...product, category: value })} />
-          <Field label="Subcategoría" value={product.subCategory} onChange={(value) => onChange({ ...product, subCategory: value })} />
+          <label>
+            <span className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">Categoría</span>
+            <input
+              list={catId}
+              value={product.category ?? ""}
+              onChange={(e) => onChange({ ...product, category: e.target.value })}
+              placeholder="Escribe o selecciona..."
+              className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-700 outline-none transition focus:border-amber-300 focus:bg-white focus:ring-4 focus:ring-amber-100"
+            />
+            <datalist id={catId}>
+              {existingCategories.map(cat => <option key={cat} value={cat} />)}
+            </datalist>
+          </label>
+          <label>
+            <span className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">Subcategoría</span>
+            <input
+              list={subId}
+              value={product.subCategory ?? ""}
+              onChange={(e) => onChange({ ...product, subCategory: e.target.value })}
+              placeholder="Escribe o selecciona..."
+              className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-700 outline-none transition focus:border-amber-300 focus:bg-white focus:ring-4 focus:ring-amber-100"
+            />
+            <datalist id={subId}>
+              {existingSubCategories.map(sub => <option key={sub} value={sub} />)}
+            </datalist>
+          </label>
           <Field
             label={lockStock ? "Stock actual" : "Stock inicial"}
             type="number"

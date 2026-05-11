@@ -33,6 +33,13 @@ public class Sale {
     @Enumerated(EnumType.STRING)
     private SaleStatus status; // PAID, PENDING, CANCELLED
 
+    private LocalDateTime lastEditedAt;
+    private String lastEditReason;
+
+    @ManyToOne
+    @JoinColumn(name = "last_edited_by_id")
+    private User lastEditedBy;
+
     // 🔥 usuario que realiza la venta
    @ManyToOne
 @JoinColumn(name = "usuario_id")
@@ -127,6 +134,30 @@ private ClientInvoice clientInvoice;
 
     public void setStatus(SaleStatus status) {
         this.status = status;
+    }
+
+    public LocalDateTime getLastEditedAt() {
+        return lastEditedAt;
+    }
+
+    public void setLastEditedAt(LocalDateTime lastEditedAt) {
+        this.lastEditedAt = lastEditedAt;
+    }
+
+    public String getLastEditReason() {
+        return lastEditReason;
+    }
+
+    public void setLastEditReason(String lastEditReason) {
+        this.lastEditReason = lastEditReason;
+    }
+
+    public User getLastEditedBy() {
+        return lastEditedBy;
+    }
+
+    public void setLastEditedBy(User lastEditedBy) {
+        this.lastEditedBy = lastEditedBy;
     }
 
     public User getUsuario() {

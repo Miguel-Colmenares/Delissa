@@ -1,26 +1,26 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import SaleModal from "../pages/SaleModal";
 import Stock from "../pages/Stock";
 import Box_Money from "../pages/Box_Money";
 import Invoices from "../pages/Invoices";
 import Stats from "../pages/Stats";
-import { Wallet } from "lucide-react";
+import ProductsSection from "../pages/ProductsSection";
 import {
   Plus,
   Minus,
   ShoppingCart,
   Trash2,
-  Utensils,
+  LogOut,
+  User,
+  Palette,
+  Settings,
+  X,
+  Wallet,
   LayoutDashboard,
   Package,
   BarChart3,
   FileText,
-  Search,
-  LogOut,
-  User,
-  Settings,
-  X,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import logo from "../assets/delissa_Logo.png";
@@ -51,10 +51,12 @@ export default function Dashboard() {
   });
   const [openSaleModal, setOpenSaleModal] = useState(false);
   const [openCart, setOpenCart] = useState(false);
+  const [theme, setTheme] = useState(() => localStorage.getItem("delissaTheme") || "classic");
   
 
   const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem("user")) || {};
+  const isAdmin = user?.rol === "admin";
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsTab, setSettingsTab] = useState("profile");
   const [managedUsers, setManagedUsers] = useState([]);
@@ -65,6 +67,8 @@ export default function Dashboard() {
     rol: user.rol || "empleado",
     password: ""
   });
+  const [qtyEdits, setQtyEdits] = useState({});
+  const [ivaRate, setIvaRate] = useState(0.19);
   const [accountForm, setAccountForm] = useState({
     nombre: "",
     cedula: "",
@@ -80,14 +84,25 @@ export default function Dashboard() {
       .catch(err => console.error(err));
   }, []);
 
-  const toggleSection = (section) => {
-    setOpenSections(prev => ({
-      ...prev,
-      [section]: !prev[section]
-    }));
-  };
+  useEffect(() => {
+    fetch("http://localhost:8080/config/iva_rate")
+      .then(res => res.text())
+      .then(rate => { if (rate) setIvaRate(parseFloat(rate)); })
+      .catch(() => {});
+  }, []);
 
-  const addToCart = (product) => {
+  useEffect(() => {
+    document.documentElement.classList.toggle("theme-minimal", theme === "minimal");
+    localStorage.setItem("delissaTheme", theme);
+  }, [theme]);
+
+  useEffect(() => {
+    if (!isAdmin && (activeTab === "stats" || activeTab === "dash")) {
+      setActiveTab("ventas");
+    }
+  }, [activeTab, isAdmin]);
+
+  const addToCart = useCallback((product) => {
     setCart((prev) => {
       const exists = prev.find((i) => i.id === product.id);
       if (exists)
@@ -96,9 +111,17 @@ export default function Dashboard() {
         );
       return [...prev, { ...product, qty: 1 }];
     });
-  };
+  }, []);
+
+  const toggleSection = useCallback((section) => {
+    setOpenSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }));
+  }, []);
 
   const updateQty = (id, delta) => {
+    setQtyEdits(prev => { const n = { ...prev }; delete n[id]; return n; });
     setCart((prev) =>
       prev.map((i) =>
         i.id === id ? { ...i, qty: Math.max(1, i.qty + delta) } : i
@@ -106,10 +129,26 @@ export default function Dashboard() {
     );
   };
 
-  const removeFromCart = (id) =>
+  const setQty = (id, value) => {
+    setQtyEdits(prev => ({ ...prev, [id]: value }));
+    const num = parseInt(value, 10);
+    if (!isNaN(num) && num >= 1) {
+      setCart((prev) =>
+        prev.map((i) =>
+          i.id === id ? { ...i, qty: num } : i
+        )
+      );
+    }
+  };
+
+  const removeFromCart = (id) => {
+    setQtyEdits(prev => { const n = { ...prev }; delete n[id]; return n; });
     setCart((prev) => prev.filter((i) => i.id !== id));
+  };
 
   const subtotal = cart.reduce((acc, i) => acc + i.price * i.qty, 0);
+  const iva = subtotal * ivaRate;
+  const totalConIva = subtotal + iva;
 
   const handleLogout = () => {
     localStorage.removeItem("user");
@@ -247,32 +286,10 @@ export default function Dashboard() {
   }
 };
 
+  const handleSearchChange = useCallback((value) => {
+    setProductSearch(value);
+  }, []);
 
-const visibleProducts = products.filter(product => {
-  const query = productSearch.trim().toLowerCase();
-  if (!query) return true;
-
-  return [product.name, product.category, product.subCategory]
-    .filter(Boolean)
-    .some(value => value.toLowerCase().includes(query));
-});
-
-const groupedProducts = visibleProducts.reduce((acc, product) => {
-  const category = product.category || "otros";
-  const sub = product.subCategory || "general";
-
-  if (!acc[category]) {
-    acc[category] = {};
-  }
-
-  if (!acc[category][sub]) {
-    acc[category][sub] = [];
-  }
-
-  acc[category][sub].push(product);
-
-  return acc;
-}, {});
 
   return (
 
@@ -282,13 +299,12 @@ const groupedProducts = visibleProducts.reduce((acc, product) => {
     <nav className="group relative z-50 w-20 shrink-0 overflow-hidden bg-[#FF9F1C] py-8 text-white transition-all duration-300 hover:w-64">
 
       <div className="flex flex-col gap-4 w-full px-3">
-        <SidebarItem icon={<LayoutDashboard />} label="Dash" active={activeTab==="dash"} onClick={()=>setActiveTab("dash")} />
+        {isAdmin && <SidebarItem icon={<LayoutDashboard />} label="Dash" active={activeTab==="dash"} onClick={()=>setActiveTab("dash")} />}
         <SidebarItem icon={<ShoppingCart />} label="Ventas" active={activeTab==="ventas"} onClick={()=>setActiveTab("ventas")} />
         <SidebarItem icon={<Package />} label="Stock" active={activeTab==="stock"} onClick={()=>setActiveTab("stock")} />
-        <SidebarItem icon={<BarChart3 />} label="Stats" active={activeTab==="stats"} onClick={()=>setActiveTab("stats")} />
+        {isAdmin && <SidebarItem icon={<BarChart3 />} label="Stats" active={activeTab==="stats"} onClick={()=>setActiveTab("stats")} />}
         <SidebarItem icon={<FileText />} label="Facturas" active={activeTab==="facturas"} onClick={()=>setActiveTab("facturas")} />
-        <SidebarItem icon={<Wallet />} label="Caja" active={activeTab==="boxMoney"} onClick={()=>setActiveTab("boxMoney")} 
-/>
+        <SidebarItem icon={<Wallet />} label="Caja" active={activeTab==="boxMoney"} onClick={()=>setActiveTab("boxMoney")} />
         <div className="mt-auto w-full px-3 pt-6">
 
   <div className="mt-auto w-full px-3">
@@ -325,74 +341,19 @@ const groupedProducts = visibleProducts.reduce((acc, product) => {
 
 
     {activeTab === "ventas" && (
-      <div className="relative z-10">
-        <header className="mb-8 grid gap-5 xl:grid-cols-[auto_1fr_320px] xl:items-center">
-          <img src={logo} alt="logo" className="h-16 w-30 object-contain" />
-
-          <div>
-            <p className="text-xs font-black uppercase tracking-[0.24em] text-slate-400">Delissa</p>
-            <h1 className="m-0 mt-1 text-4xl font-black tracking-normal text-slate-950">
-  MENÚ DE PRODUCTOS
-            </h1>
-          </div>
-
-          <div className="relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-
-            <input
-              placeholder="Buscar productos..."
-              value={productSearch}
-              onChange={(event) => setProductSearch(event.target.value)}
-              className="h-12 w-full rounded-2xl border border-slate-200 bg-white/90 pl-11 pr-4 text-sm font-semibold text-slate-700 shadow-sm outline-none transition focus:border-[#FF9F1C] focus:ring-4 focus:ring-amber-100"
-            />
-          </div>
-        </header>
-
-       {activeTab === "ventas" &&  (
-  <>
- 
-    {Object.keys(groupedProducts).map((category) => (
-      <div key={category} className="mb-9">
-
-        <h2 className="mb-4 text-xl font-black capitalize tracking-normal text-slate-800">
-          {category}
-        </h2>
-
-        <div className="space-y-4">
-          {Object.keys(groupedProducts[category]).map((sub) => (
-            <Dropdown
-              key={sub}
-              title={sub}
-              open={openSections[sub] ?? true}
-              onClick={() =>
-                setOpenSections(prev => ({
-                  ...prev,
-                  [sub]: !prev[sub]
-                }))
-              }
-              addToCart={addToCart}
-              formatCOP={formatCOP}
-            >
-              {groupedProducts[category][sub]}
-            </Dropdown>
-          ))}
-        </div>
-
-      </div>
-    ))}
-    {Object.keys(groupedProducts).length === 0 && (
-      <div className="rounded-2xl border border-dashed border-slate-300 bg-white/80 p-10 text-center font-bold text-slate-400">
-        No hay productos que coincidan con la busqueda.
-      </div>
-    )}
-  </>
-)}
-      </div>
+      <ProductsSection
+        products={products}
+        productSearch={productSearch}
+        onSearchChange={handleSearchChange}
+        openSections={openSections}
+        onToggleSection={toggleSection}
+        addToCart={addToCart}
+      />
     )}
 
     {activeTab === "stock" && <Stock user={user} />}
     {activeTab === "stats" && <Stats formatCOP={formatCOP} />}
-    {activeTab === "facturas" && <Invoices formatCOP={formatCOP} />}
+    {activeTab === "facturas" && <Invoices formatCOP={formatCOP} user={user} />}
     {activeTab === "boxMoney" && <Box_Money formatCOP={formatCOP} />}
 
   </section>
@@ -446,18 +407,25 @@ const groupedProducts = visibleProducts.reduce((acc, product) => {
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
-            <button onClick={() => updateQty(item.id, -1)}>
+          <div className="flex items-center gap-1.5">
+            <button onClick={() => updateQty(item.id, -1)} className="flex h-7 w-7 items-center justify-center rounded-lg bg-white text-slate-600 shadow-sm transition hover:bg-slate-100">
               <Minus size={14} />
             </button>
 
-            <span>{item.qty}</span>
+            <input
+              type="number"
+              min="1"
+              value={qtyEdits[item.id] !== undefined ? qtyEdits[item.id] : item.qty}
+              onChange={(e) => setQty(item.id, e.target.value)}
+              onBlur={() => setQtyEdits(prev => { const n = { ...prev }; delete n[item.id]; return n; })}
+              className="h-7 w-12 rounded-lg border border-slate-200 bg-white text-center text-sm font-bold text-slate-800 outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+            />
 
-            <button onClick={() => updateQty(item.id, 1)}>
+            <button onClick={() => updateQty(item.id, 1)} className="flex h-7 w-7 items-center justify-center rounded-lg bg-white text-slate-600 shadow-sm transition hover:bg-slate-100">
               <Plus size={14} />
             </button>
 
-            <button onClick={() => removeFromCart(item.id)}>
+            <button onClick={() => removeFromCart(item.id)} className="flex h-7 w-7 items-center justify-center rounded-lg bg-white text-rose-500 shadow-sm transition hover:bg-rose-50">
               <Trash2 size={14} />
             </button>
           </div>
@@ -468,8 +436,14 @@ const groupedProducts = visibleProducts.reduce((acc, product) => {
 
   <div className="p-4 border-t">
 
-    <h3 className="font-bold mb-2">
-      Total: {formatCOP(subtotal)}
+    <h3 className="font-bold mb-1">
+      Subtotal: {formatCOP(subtotal)}
+    </h3>
+    <h3 className="text-sm text-slate-500 mb-1">
+      IVA ({Math.round(ivaRate * 100)}%): {formatCOP(iva)}
+    </h3>
+    <h3 className="font-bold text-lg text-[#FF4040] mb-3">
+      Total: {formatCOP(totalConIva)}
     </h3>
 
     <button
@@ -483,8 +457,12 @@ const groupedProducts = visibleProducts.reduce((acc, product) => {
       open={openSaleModal}
       onClose={() => setOpenSaleModal(false)}
       onConfirm={handleConfirmSale}
-      total={subtotal}
-        cart={cart} 
+      total={totalConIva}
+      subtotal={subtotal}
+      iva={iva}
+      ivaRate={ivaRate}
+        cart={cart}
+      user={user}
     />
 
   </div>
@@ -527,6 +505,13 @@ const groupedProducts = visibleProducts.reduce((acc, product) => {
             className="flex items-center gap-2 bg-white shadow-lg px-4 py-2 rounded-xl hover:bg-gray-100"
           >
             <User size={18} /> Perfil
+          </button>
+
+          <button
+            onClick={() => setTheme((current) => current === "minimal" ? "classic" : "minimal")}
+            className="flex items-center gap-2 bg-white shadow-lg px-4 py-2 rounded-xl hover:bg-gray-100"
+          >
+            <Palette size={18} /> {theme === "minimal" ? "Tema clasico" : "Tema minimal"}
           </button>
 
           <button
@@ -576,62 +561,7 @@ const groupedProducts = visibleProducts.reduce((acc, product) => {
   
 );
 
-
-
-
-function Dropdown({ title, open, onClick, children, addToCart, formatCOP }) {
-  return (
-    <div className="menu-section">
-      <button
-        onClick={onClick}
-        className={`relative flex min-h-14 w-full items-center justify-between overflow-hidden rounded-2xl px-5 py-4 text-left font-black capitalize tracking-normal transition-all duration-300
-        ${
-          open
-            ? "bg-[#FFCC33] text-slate-950 shadow-lg shadow-amber-100 ring-1 ring-amber-300"
-            : "bg-white text-slate-600 shadow-sm ring-1 ring-slate-200 hover:-translate-y-0.5 hover:text-slate-950 hover:shadow-md"
-        }`}
-      >
-
-        {open && (
-  <>
-    <span className="menu-section-bubble menu-section-bubble-a" />
-    <span className="menu-section-bubble menu-section-bubble-b" />
-    <span className="menu-section-bubble menu-section-bubble-c" />
-  </>
-)}
-
-        {/* CONTENIDO */}
-        <span className="relative z-10">{title}</span>
-        <span className={`relative z-10 grid h-8 w-8 flex-none place-items-center rounded-full text-sm transition ${open ? "bg-white/45 text-slate-950" : "bg-slate-100"}`}>
-          {open ? "-" : "+"}
-        </span>
-
-      </button>
-
-      {open && (
-        <motion.div
-          initial={{ opacity: 0, y: -8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.2 }}
-          className="mt-4 grid grid-cols-1 gap-5 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4"
-        >
-          {children.map((p) => (
-            <ProductCard
-              key={p.id}
-              p={p}
-              addToCart={addToCart}
-              formatCOP={formatCOP}
-            />
-          ))}
-        </motion.div>
-      )}
-    </div>
-  );
 }
-
-}
-
-
 
 function SidebarItem({ icon, label, active, onClick }) {
   return (
@@ -655,55 +585,6 @@ function SidebarItem({ icon, label, active, onClick }) {
     </button>
   );
 }
-function ProductCard({ p, addToCart, formatCOP }) {
-
-  const getImage = () => {
-    if (!p.img) return "https://placehold.co/300x200?text=Sin+imagen";
-
-    if (p.img.startsWith("http")) {
-      return p.img; // externa
-    }
-
-    return `http://localhost:8080${p.img}`; // backend
-  };
-
-  return (
-    <motion.div
-      whileHover={{ y: -7, scale: 1.015 }}
-      transition={{ type: "spring", stiffness: 260, damping: 18 }}
-      className="group flex min-h-[330px] flex-col overflow-hidden rounded-2xl border-2 border-orange-200 bg-orange-50 p-3 shadow-[0_14px_32px_rgba(15,23,42,0.08)] ring-1 ring-orange-100 transition-all hover:border-[#FFCC33] hover:bg-orange-100/70 hover:shadow-[0_20px_42px_rgba(255,159,28,0.2)]"
-    >
-      <div className="relative overflow-hidden rounded-xl border border-orange-200 bg-white">
-        <img
-          src={getImage()}
-          onError={(e) => {
-            e.target.src = "https://placehold.co/300x200?text=Error";
-          }}
-          className="h-32 w-full object-cover transition duration-500 group-hover:scale-110"
-          alt={p.name}
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/28 to-transparent opacity-0 transition group-hover:opacity-100" />
-      </div>
-
-      <h3 className="mt-3 min-h-10 text-center text-sm font-black leading-tight tracking-normal text-slate-900">{p.name}</h3>
-
-      <p className="mb-3 text-center text-sm font-black text-[#FF4040]">
-        {formatCOP(p.price)}
-      </p>
-
-      <div className="mt-auto flex justify-center">
-        <button
-          onClick={() => addToCart(p)}
-          className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-r from-[#FF9F1C] to-[#FF4040] text-lg font-black text-white shadow-md transition hover:scale-105"
-          aria-label={`Agregar ${p.name}`}
-        >
-          +
-        </button>
-      </div>
-    </motion.div>
-  );
-}
-
 function SettingsModal({
   open,
   onClose,
@@ -723,6 +604,33 @@ function SettingsModal({
   if (!open) return null;
 
   const isAdmin = user?.rol === "admin";
+  const [ivaRateInput, setIvaRateInput] = useState("");
+  const [loadingIva, setLoadingIva] = useState(false);
+
+  useEffect(() => {
+    if (open && isAdmin) {
+      fetch("http://localhost:8080/config/iva_rate")
+        .then(res => res.text())
+        .then(rate => { if (rate) setIvaRateInput(rate); })
+        .catch(() => {});
+    }
+  }, [open, isAdmin]);
+
+  const saveIvaRate = async () => {
+    setLoadingIva(true);
+    try {
+      await fetch("http://localhost:8080/config/iva_rate", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ value: ivaRateInput })
+      });
+      alert("Tasa de IVA guardada. Reinicia la página para aplicar.");
+    } catch {
+      alert("Error guardando tasa de IVA");
+    } finally {
+      setLoadingIva(false);
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-[100000] flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm">
@@ -751,6 +659,14 @@ function SettingsModal({
                 className={`w-full rounded-xl px-4 py-3 text-left text-sm font-bold ${tab === "accounts" ? "bg-[#FF4040] text-white" : "bg-white text-slate-700"}`}
               >
                 Cuentas
+              </button>
+            )}
+            {isAdmin && (
+              <button
+                onClick={() => setTab("iva")}
+                className={`mt-2 w-full rounded-xl px-4 py-3 text-left text-sm font-bold ${tab === "iva" ? "bg-emerald-600 text-white" : "bg-white text-slate-700"}`}
+              >
+                IVA
               </button>
             )}
           </aside>
@@ -842,6 +758,38 @@ function SettingsModal({
                         </button>
                       </div>
                     ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {tab === "iva" && isAdmin && (
+              <div className="space-y-5">
+                <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-4">
+                  <h3 className="text-lg font-bold text-slate-950">Configurar IVA</h3>
+                  <p className="mt-1 text-sm text-slate-600">
+                    Define el porcentaje de IVA aplicado a todas las ventas.
+                  </p>
+                  <div className="mt-4 flex items-end gap-3">
+                    <label className="flex-1">
+                      <span className="mb-1 block text-sm font-bold text-slate-600">Tasa de IVA (%)</span>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        max="100"
+                        value={ivaRateInput}
+                        onChange={(e) => setIvaRateInput(e.target.value)}
+                        className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 font-semibold text-slate-900 outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
+                      />
+                    </label>
+                    <button
+                      onClick={saveIvaRate}
+                      disabled={loadingIva}
+                      className="h-11 rounded-xl bg-emerald-600 px-6 font-bold text-white disabled:opacity-50"
+                    >
+                      {loadingIva ? "Guardando..." : "Guardar"}
+                    </button>
                   </div>
                 </div>
               </div>

@@ -1,11 +1,29 @@
 import { useEffect, useState } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { createPortal } from "react-dom";
 
 import Login from "./pages/login";
 import Dashboard from "./pages/Dashboard";
 
 function App() {
   const [loading, setLoading] = useState(() => sessionStorage.getItem("delissaLoaderShown") !== "true");
+  const [alerts, setAlerts] = useState([]);
+
+  useEffect(() => {
+    const nativeAlert = window.alert;
+
+    window.alert = (message = "") => {
+      const id = `${Date.now()}-${Math.random()}`;
+      setAlerts((current) => [...current, { id, message: String(message) }]);
+      window.setTimeout(() => {
+        setAlerts((current) => current.filter((item) => item.id !== id));
+      }, 3200);
+    };
+
+    return () => {
+      window.alert = nativeAlert;
+    };
+  }, []);
 
   useEffect(() => {
     if (!loading) return;
@@ -57,11 +75,44 @@ function App() {
   // Rutas principales
   return (
     <BrowserRouter>
+      <FloatingAlerts alerts={alerts} onDismiss={(id) => setAlerts((current) => current.filter((item) => item.id !== id))} />
       <Routes>
         <Route path="/" element={<Login />} />
         <Route path="/dashboard" element={<Dashboard />} />
       </Routes>
     </BrowserRouter>
+  );
+}
+
+function FloatingAlerts({ alerts, onDismiss }) {
+  if (!alerts.length) return null;
+
+  return createPortal(
+    <div className="fixed right-4 top-4 z-[200000] flex w-[min(360px,calc(100vw-2rem))] flex-col gap-3">
+      {alerts.map((item) => (
+        <div
+          key={item.id}
+          className="rounded-xl border border-slate-200 bg-white p-4 text-slate-900 shadow-2xl ring-1 ring-slate-900/5"
+          role="status"
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.14em] text-amber-600">Delissa</p>
+              <p className="mt-1 text-sm font-semibold leading-5">{item.message}</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => onDismiss(item.id)}
+              className="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+              aria-label="Cerrar alerta"
+            >
+              x
+            </button>
+          </div>
+        </div>
+      ))}
+    </div>,
+    document.body
   );
 }
 

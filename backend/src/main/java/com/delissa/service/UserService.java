@@ -40,7 +40,7 @@ public class UserService {
     // =========================
     // LOGIN
     // =========================
-    public User login(String correo, String password, String rol) {
+    public User login(String correo, String password) {
 
         User user = userRepository.findByCorreo(correo)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
@@ -48,11 +48,6 @@ public class UserService {
         // validar contraseña
         if (!passwordEncoder.matches(password, user.getPassword())) {
             throw new RuntimeException("Contraseña incorrecta");
-        }
-
-        // validar rol
-        if (!user.getRol().equals(rol)) {
-            throw new RuntimeException("Rol incorrecto");
         }
 
         return user;

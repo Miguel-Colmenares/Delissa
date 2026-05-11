@@ -122,9 +122,7 @@ export default function Stats({ formatCOP = (value) => value }) {
   };
 
   const handlePrint = () => {
-    document.body.classList.add("stats-print-mode");
     window.print();
-    window.setTimeout(() => document.body.classList.remove("stats-print-mode"), 300);
   };
 
   return (
@@ -346,6 +344,37 @@ export default function Stats({ formatCOP = (value) => value }) {
             <div className="rounded-xl border border-slate-200 bg-white p-4">
               <h3 className="m-0 mb-3 text-lg font-semibold text-slate-900">Proyecciones</h3>
               <ProjectionBoard stats={stats} formatCOP={formatCOP} />
+            </div>
+
+            <div className="break-inside-avoid rounded-xl border border-slate-200 bg-white p-4">
+              <div className="mb-3 flex items-center justify-between">
+                <h3 className="m-0 text-xl font-semibold text-slate-900">Ventas por tiempo</h3>
+                <p className="text-sm font-semibold text-slate-600">{stats.rangeLabel}</p>
+              </div>
+              <TimelineChart
+                data={stats.timeline}
+                comparisonData={stats.comparisonTimeline}
+                max={maxTimeline}
+                mode="mix"
+                paymentFilter={paymentFilter}
+                formatCOP={formatCOP}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="break-inside-avoid rounded-xl border border-slate-200 bg-white p-4">
+                <h3 className="m-0 mb-3 text-lg font-semibold text-slate-900">Ventas por producto</h3>
+                <ProductSalesChart products={stats.products} maxQty={maxProductQty} formatCOP={formatCOP} />
+              </div>
+              <div className="break-inside-avoid rounded-xl border border-slate-200 bg-white p-4">
+                <h3 className="m-0 mb-3 text-lg font-semibold text-slate-900">Participacion por producto</h3>
+                <ProductPieChart products={stats.products} />
+              </div>
+            </div>
+
+            <div className="break-inside-avoid rounded-xl border border-slate-200 bg-white p-4">
+              <h3 className="m-0 mb-3 text-lg font-semibold text-slate-900">Comparativo de productos</h3>
+              <ProductComparisonTable products={stats.products} comparisonProducts={stats.comparisonProducts} formatCOP={formatCOP} />
             </div>
 
             <h2 className="m-0 pt-2 text-2xl font-semibold text-slate-900">Graficas por metodo de pago</h2>

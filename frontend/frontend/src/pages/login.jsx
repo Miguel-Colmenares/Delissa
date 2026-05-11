@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import logo from "../assets/delissa_Logo.png";
 const Login = () => {
   const navigate = useNavigate();
-  const [role, setRole] = useState('empleado');
   const [correo, setCorreo] = useState('');
   const [password, setPassword] = useState('');
  
@@ -19,8 +18,7 @@ const handleSubmit = async (e) => {
       },
       body: JSON.stringify({
         correo,
-        password,
-        rol: role
+        password
       })
     });
 
@@ -57,33 +55,6 @@ const handleSubmit = async (e) => {
           <form onSubmit={handleSubmit} style={styles.form}>
             <h2 style={styles.welcomeText}>¡Bienvenido!</h2>
             <p style={styles.subtitle}>Gestión de comidas con inteligencia</p>
-
-            {/* SELECTOR DE ROL */}
-            <div style={styles.inputGroup}>
-              <label style={styles.label}>Tipo de Usuario</label>
-              <div style={styles.roleSwitcher}>
-                <button
-                  type="button"
-                  onClick={() => setRole('admin')}
-                  style={{
-                    ...styles.roleButton,
-                    ...(role === 'admin' ? styles.activeRoleAdmin : styles.inactiveRole)
-                  }}
-                >
-                  Admin 
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setRole('empleado')}
-                  style={{
-                    ...styles.roleButton,
-                    ...(role === 'empleado' ? styles.activeRoleEmpleado : styles.inactiveRole)
-                  }}
-                >
-                  Empleado 
-                </button>
-              </div>
-            </div>
 
             {/* CORREO */}
             <div style={styles.inputGroup}>

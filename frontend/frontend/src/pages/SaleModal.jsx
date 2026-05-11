@@ -4,7 +4,7 @@ import { createPortal } from "react-dom";
 import logo from "../assets/delissa_Logo.png";
 
 
-export default function SaleModal({ open, onClose, onConfirm, total, cart}) {
+export default function SaleModal({ open, onClose, onConfirm, total, subtotal, iva, ivaRate, cart, user }) {
 
   const [step, setStep] = useState(1);
   const [type, setType] = useState(null);
@@ -353,88 +353,112 @@ export default function SaleModal({ open, onClose, onConfirm, total, cart}) {
               <>
                 <div className="flex flex-col items-center">
 
-                  <div
-                    id="receipt"
-                    className="bg-white w-[280px] p-4 text-[12px] font-mono text-black shadow-lg"
-                  >
+                    <div
+                      id="receipt"
+                      className="bg-white w-[300px] p-4 text-[12px] font-mono text-black shadow-lg"
+                    >
 
-                    <div className="text-center mb-2">
-                      <img src={logo} alt="logo" className="w-20 mb-2"/>
-                      <p className="font-bold text-sm">DELISSA S.A.S</p>
-                      <p>NIT: 123456789</p>
-                      <p>Villavicencio - Meta</p>
-                      <p>Tel: 3000000000</p>
-                    </div>
-
-                    <hr className="border-dashed border-gray-400 my-2" />
-
-                    <div className="space-y-1">
-                      <div className="flex justify-between">
-                        <span>Fecha:</span>
-                        <span>{new Date().toLocaleString()}</span>
+                      <div className="text-center mb-2">
+                        <img src={logo} alt="logo" className="w-20 mb-2 mx-auto"/>
+                        <p className="font-bold text-sm">DELISSA S.A.S</p>
+                      </div>
+                      <div className="text-left text-[11px]">
+                        <p>NIT: 21.176.659</p>
+                        <p>Villavicencio - Meta</p>
+                        <p>Tel: 314 451 9180</p>
+                        {user?.nombre && <p className="mt-1 text-[10px]">Vendedor: {user.nombre}</p>}
                       </div>
 
-                      <div className="flex justify-between">
-                        <span>Pago:</span>
-                        <span>{receiptData.paymentMethod}</span>
-                      </div>
-                    </div>
-
-                    <hr className="border-dashed border-gray-400 my-2" />
-
-                    <div>
-                      <div className="flex justify-between font-bold text-[11px]">
-                        <span>Producto</span>
-                        <span>Total</span>
-                      </div>
-
-                      {receiptData.items.map((item, i) => (
-                        <div key={i} className="mb-1">
-                          <div className="flex justify-between">
-                            <span>{item.name}</span>
-                            <span>{formatCOP(item.price * item.qty)}</span>
+                      {type === "empresa" && form.clientName && (
+                        <>
+                          <hr className="border-dashed border-gray-400 my-2" />
+                          <div className="mb-1">
+                            <p className="font-bold text-[10px] uppercase">Cliente empresarial</p>
+                            <p className="text-[11px]">{form.clientName}</p>
+                            {form.nit && <p className="text-[11px]">NIT: {form.nit}</p>}
+                            {form.email && <p className="text-[11px]">{form.email}</p>}
+                            {form.address && <p className="text-[11px]">{form.address}</p>}
                           </div>
-                          <div className="flex justify-between text-[10px] text-gray-500">
-                            <span>{item.qty} x {formatCOP(item.price)}</span>
-                          </div>
+                        </>
+                      )}
+
+                      <hr className="border-dashed border-gray-400 my-2" />
+
+                      <div className="space-y-1">
+                        <div className="flex justify-between">
+                          <span>Fecha:</span>
+                          <span>{new Date().toLocaleString()}</span>
                         </div>
-                      ))}
-                    </div>
 
-                    <hr className="border-dashed border-gray-400 my-2" />
-
-                    <div className="space-y-1">
-                      <div className="flex justify-between">
-                        <span>Subtotal</span>
-                        <span>{formatCOP(receiptData.total)}</span>
+                        <div className="flex justify-between">
+                          <span>Pago:</span>
+                          <span>{receiptData.paymentMethod}</span>
+                        </div>
                       </div>
 
-                      <div className="flex justify-between font-bold text-lg">
-                        <span>Total:</span>
-                        <span>{formatCOP(receiptData.total)}</span>
+                      <hr className="border-dashed border-gray-400 my-2" />
+
+                      <div>
+                        <div className="flex justify-between font-bold text-[11px]">
+                          <span>Producto</span>
+                          <span>Total</span>
+                        </div>
+
+                        {receiptData.items.map((item, i) => (
+                          <div key={i} className="mb-1">
+                            <div className="flex justify-between">
+                              <span>{item.name}</span>
+                              <span>{formatCOP(item.price * item.qty)}</span>
+                            </div>
+                            <div className="flex justify-between text-[10px] text-gray-500">
+                              <span>{item.qty} x {formatCOP(item.price)}</span>
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                    </div>
 
-                    <hr className="border-dashed border-gray-400 my-2" />
+                      <hr className="border-dashed border-gray-400 my-2" />
 
-                    <div className="space-y-1">
-                      <div className="flex justify-between">
-                        <span>Recibido:</span>
-                        <span>{formatCOP(receiptData.received)}</span>
+                      <div className="space-y-1">
+                        <div className="flex justify-between">
+                          <span>Subtotal</span>
+                          <span>{formatCOP(subtotal || receiptData.total)}</span>
+                        </div>
+
+                        <div className="flex justify-between text-gray-600">
+                          <span>IVA ({Math.round((ivaRate || 0) * 100)}%):</span>
+                          <span>{formatCOP(iva || 0)}</span>
+                        </div>
+
+                        <div className="flex justify-between font-bold text-lg">
+                          <span>Total:</span>
+                          <span>{formatCOP(receiptData.total)}</span>
+                        </div>
                       </div>
 
-                      <div className="flex justify-between font-bold">
-                        <span>Cambio:</span>
-                        <span>{formatCOP(receiptData.change)}</span>
+                      {form.paymentMethod === "CASH" && (
+                        <>
+                          <hr className="border-dashed border-gray-400 my-2" />
+                          <div className="space-y-1">
+                            <div className="flex justify-between">
+                              <span>Recibido:</span>
+                              <span>{formatCOP(receiptData.received)}</span>
+                            </div>
+                            <div className="flex justify-between font-bold">
+                              <span>Cambio:</span>
+                              <span>{formatCOP(receiptData.change)}</span>
+                            </div>
+                          </div>
+                        </>
+                      )}
+
+                      <hr className="border-dashed border-gray-400 my-2" />
+
+                      <div className="text-center text-[10px] mt-2">
+                        <p>Gracias por tu compra</p>
+                        <p className="mt-2 text-[9px] text-gray-400">Los productos no tienen cambio ni devolucion.</p>
+                        <p className="text-[9px] text-gray-400">&copy; 2026 DELISSA S.A.S - Todos los derechos reservados.</p>
                       </div>
-                    </div>
-
-                    <hr className="border-dashed border-gray-400 my-2" />
-
-                    <div className="text-center text-[10px] mt-2">
-                      <p>Gracias por tu compra</p>
-                      <p>Vuelve pronto</p>
-                    </div>
 
                   </div>
 

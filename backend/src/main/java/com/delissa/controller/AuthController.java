@@ -24,14 +24,13 @@ public class AuthController {
     }
 
     // =========================
-    // LOGIN (CON ROL)
+    // LOGIN
     // =========================
    @PostMapping("/login")
 public User login(@RequestBody UserLoginRequest request) {
     return userService.login(
         request.getCorreo(),
-        request.getPassword(),
-        request.getRol()
+        request.getPassword()
     );
 }
 }

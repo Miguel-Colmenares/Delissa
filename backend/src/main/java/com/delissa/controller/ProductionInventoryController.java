@@ -43,7 +43,7 @@ public class ProductionInventoryController {
     }
 
     @PutMapping("/{id}")
-    public ProductionItem update(@PathVariable Long id, @RequestBody ProductionItem item) {
+    public ProductionItem update(@PathVariable Long id, @RequestBody ProductionItem item, @RequestParam(required = false) Long userId) {
         ProductionItem existing = productionItemRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Ingrediente no encontrado"));
 
@@ -61,7 +61,20 @@ public class ProductionInventoryController {
         existing.setProductLinks(item.getProductLinks());
         existing.setLastUpdate(LocalDateTime.now());
 
-        return productionItemRepository.save(existing);
+        ProductionItem saved = productionItemRepository.save(existing);
+
+        ProductionInventoryMovement movement = new ProductionInventoryMovement();
+        movement.setProductionItem(saved);
+        movement.setQuantity(0.0);
+        movement.setType("EDIT");
+        movement.setReason("Edicion de ingrediente");
+        movement.setLastUpdate(LocalDateTime.now());
+        if (item.getUserId() != null) {
+            userRepository.findById(item.getUserId().intValue()).ifPresent(movement::setUser);
+        }
+        movementRepository.save(movement);
+
+        return saved;
     }
 
     @DeleteMapping("/{id}")

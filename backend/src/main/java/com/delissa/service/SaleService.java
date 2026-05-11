@@ -9,7 +9,9 @@ import com.delissa.repository.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -19,15 +21,30 @@ public class SaleService {
     private final ProductRepository productRepository;
     private final ClientInvoiceRepository clientInvoiceRepository;
     private final ProductionStockService productionStockService;
+    private final UserRepository userRepository;
+    private final ConfigSettingRepository configSettingRepository;
+    private final InventoryRepository inventoryRepository;
+
+    private double getIvaRate() {
+        return configSettingRepository.findByConfigKey("iva_rate")
+                .map(s -> Double.parseDouble(s.getConfigValue()))
+                .orElse(0.19);
+    }
 
     public SaleService(SaleRepository saleRepository,
                        ProductRepository productRepository,
                        ClientInvoiceRepository clientInvoiceRepository,
-                       ProductionStockService productionStockService) {
+                       ProductionStockService productionStockService,
+                       UserRepository userRepository,
+                       ConfigSettingRepository configSettingRepository,
+                       InventoryRepository inventoryRepository) {
         this.saleRepository = saleRepository;
         this.productRepository = productRepository;
         this.clientInvoiceRepository = clientInvoiceRepository;
         this.productionStockService = productionStockService;
+        this.userRepository = userRepository;
+        this.configSettingRepository = configSettingRepository;
+        this.inventoryRepository = inventoryRepository;
     }
 
     @Transactional
@@ -59,12 +76,22 @@ public class SaleService {
             Long userId = sale.getUsuario() != null ? sale.getUsuario().getId().longValue() : null;
             productionStockService.discountForProduct(product.getId(), detail.getQuantity(), "Venta de " + product.getName(), userId);
 
+            Inventory inv = new Inventory();
+            inv.setProduct(product);
+            inv.setQuantity(-detail.getQuantity());
+            inv.setLastUpdate(LocalDateTime.now());
+            User invUser = userId != null ? userRepository.findById(userId.intValue()).orElse(null) : null;
+            inv.setUser(invUser);
+            inventoryRepository.save(inv);
+
             subtotal += detail.getSubtotal();
         }
 
         sale.setSubtotal(subtotal);
-        sale.setTax(0.0);
-        sale.setTotal(subtotal);
+        double ivaRate = getIvaRate();
+        double tax = subtotal * ivaRate;
+        sale.setTax(tax);
+        sale.setTotal(subtotal + tax);
         sale.setStatus(SaleStatus.PAID);
 
         ClientInvoice invoiceToSave = null;
@@ -103,6 +130,7 @@ public class SaleService {
 
         boolean wasCancelled = sale.getStatus() == SaleStatus.CANCELLED;
         SaleStatus requestedStatus = payload.getStatus() != null ? payload.getStatus() : sale.getStatus();
+        applyEditAudit(sale, payload);
 
         updateInvoiceMetadata(sale, payload);
 
@@ -116,15 +144,21 @@ public class SaleService {
         }
 
         if (payload.getDetails() != null && !payload.getDetails().isEmpty()) {
-            if (!wasCancelled) {
-                restoreStock(sale);
-            }
+            boolean detailsChanged = haveDetailsChanged(sale.getDetails(), payload.getDetails());
 
-            sale.getDetails().clear();
-            double subtotal = applyDetailsAndDiscountStock(sale, payload.getDetails());
-            sale.setSubtotal(subtotal);
-            sale.setTax(0.0);
-            sale.setTotal(subtotal);
+            if (detailsChanged) {
+                if (!wasCancelled) {
+                    restoreStock(sale);
+                }
+
+                sale.getDetails().clear();
+                double subtotal = applyDetailsAndDiscountStock(sale, payload.getDetails());
+                sale.setSubtotal(subtotal);
+                double ivaRate = getIvaRate();
+                double tax = subtotal * ivaRate;
+                sale.setTax(tax);
+                sale.setTotal(subtotal + tax);
+            }
         }
 
         sale.setStatus(requestedStatus != null ? requestedStatus : SaleStatus.PAID);
@@ -133,9 +167,11 @@ public class SaleService {
     }
 
     @Transactional
-    public Sale cancelInvoice(Integer saleId) {
+    public Sale cancelInvoice(Integer saleId, Sale payload) {
         Sale sale = saleRepository.findById(saleId)
                 .orElseThrow(() -> new RuntimeException("Factura no encontrada"));
+
+        applyEditAudit(sale, payload != null ? payload : payloadForSystemCancel());
 
         if (sale.getStatus() != SaleStatus.CANCELLED) {
             restoreStock(sale);
@@ -143,6 +179,27 @@ public class SaleService {
         }
 
         return saleRepository.save(sale);
+    }
+
+    private void applyEditAudit(Sale sale, Sale payload) {
+        sale.setLastEditedAt(LocalDateTime.now());
+
+        if (payload.getLastEditReason() != null && !payload.getLastEditReason().isBlank()) {
+            sale.setLastEditReason(payload.getLastEditReason());
+        } else if (sale.getLastEditReason() == null || sale.getLastEditReason().isBlank()) {
+            sale.setLastEditReason("Edicion de factura");
+        }
+
+        if (payload.getLastEditedBy() != null && payload.getLastEditedBy().getId() != null) {
+            userRepository.findById(payload.getLastEditedBy().getId())
+                    .ifPresent(sale::setLastEditedBy);
+        }
+    }
+
+    private Sale payloadForSystemCancel() {
+        Sale payload = new Sale();
+        payload.setLastEditReason("Anulacion de factura");
+        return payload;
     }
 
     private void updateInvoiceMetadata(Sale sale, Sale payload) {
@@ -223,6 +280,26 @@ public class SaleService {
         return subtotal;
     }
 
+    private boolean haveDetailsChanged(List<SaleDetail> original, List<SaleDetail> requested) {
+        if (original == null || requested == null) return true;
+        if (original.size() != requested.size()) return true;
+
+        Map<Long, Integer> originalMap = new HashMap<>();
+        for (SaleDetail d : original) {
+            if (d.getProduct() != null && d.getProduct().getId() != null) {
+                originalMap.put(d.getProduct().getId(), d.getQuantity() != null ? d.getQuantity() : 0);
+            }
+        }
+
+        for (SaleDetail d : requested) {
+            if (d.getProduct() == null || d.getProduct().getId() == null) return true;
+            Integer originalQty = originalMap.get(d.getProduct().getId());
+            if (originalQty == null || !originalQty.equals(d.getQuantity())) return true;
+        }
+
+        return false;
+    }
+
     private void restoreStock(Sale sale) {
         if (sale.getDetails() == null) return;
         Long userId = sale.getUsuario() != null ? sale.getUsuario().getId().longValue() : null;
@@ -238,6 +315,14 @@ public class SaleService {
                 product.setStock(product.getStock() + quantity);
                 productRepository.save(product);
                 productionStockService.restoreForProduct(product.getId(), quantity, "Restauracion de venta cancelada", userId);
+
+                Inventory inv = new Inventory();
+                inv.setProduct(product);
+                inv.setQuantity(quantity);
+                inv.setLastUpdate(LocalDateTime.now());
+                User invUser = userId != null ? userRepository.findById(userId.intValue()).orElse(null) : null;
+                inv.setUser(invUser);
+                inventoryRepository.save(inv);
             }
         }
     }
