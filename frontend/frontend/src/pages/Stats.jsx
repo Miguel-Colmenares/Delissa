@@ -20,7 +20,7 @@ import {
 import { AnimatePresence, motion } from "framer-motion";
 import "react-calendar/dist/Calendar.css";
 
-const API = "http://localhost:8080";
+import { API } from "../config";
 const DAY_MS = 24 * 60 * 60 * 1000;
 const PERIODS = { day: "Dia", week: "Semana", year: "Ano" };
 const PAYMENT_FILTERS = {

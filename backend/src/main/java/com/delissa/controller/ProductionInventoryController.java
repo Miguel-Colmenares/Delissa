@@ -69,8 +69,8 @@ public class ProductionInventoryController {
         movement.setType("EDIT");
         movement.setReason("Edicion de ingrediente");
         movement.setLastUpdate(LocalDateTime.now());
-        if (item.getUserId() != null) {
-            userRepository.findById(item.getUserId().intValue()).ifPresent(movement::setUser);
+        if (userId != null) {
+            userRepository.findById(userId.intValue()).ifPresent(movement::setUser);
         }
         movementRepository.save(movement);
 

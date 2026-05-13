@@ -9,6 +9,7 @@ import {
   UserRound,
   X
 } from "lucide-react";
+import { API } from "../config";
 
 export default function InventoryModal({ date, onClose }) {
   const [products, setProducts] = useState([]);
@@ -17,7 +18,7 @@ export default function InventoryModal({ date, onClose }) {
 
   useEffect(() => {
     const loadAll = async () => {
-      const resProducts = await fetch("http://localhost:8080/products");
+      const resProducts = await fetch(`${API}/products`);
       const productsData = await resProducts.json();
 
       const start = new Date(date);
@@ -27,7 +28,7 @@ export default function InventoryModal({ date, onClose }) {
       end.setHours(23, 59, 59, 999);
 
       const resMov = await fetch(
-        `http://localhost:8080/products/inventory?start=${toLocalDateTimeParam(start)}&end=${toLocalDateTimeParam(end)}`
+        `${API}/products/inventory?start=${toLocalDateTimeParam(start)}&end=${toLocalDateTimeParam(end)}`
       );
 
       const movData = await resMov.json();

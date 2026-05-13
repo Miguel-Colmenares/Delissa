@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from "react-router-dom";
 import logo from "../assets/delissa_Logo.png";
+import { API } from "../config";
 const Login = () => {
   const navigate = useNavigate();
   const [correo, setCorreo] = useState('');
@@ -11,7 +12,7 @@ const handleSubmit = async (e) => {
   e.preventDefault();
 
   try {
-    const res = await fetch("http://localhost:8080/auth/login", {
+    const res = await fetch(`${API}/auth/login`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json"

@@ -2,6 +2,7 @@ import { memo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, X, ShoppingCart, Check } from "lucide-react";
 import logo from "../assets/delissa_Logo.png";
+import { API } from "../config";
 
 const cardVariants = {
   hidden: { opacity: 0, y: 20 },
@@ -18,7 +19,7 @@ const ProductCard = memo(function ProductCard({ product, onAdd, index }) {
   const getImage = () => {
     if (!product.img || imgErr) return "https://placehold.co/300x200?text=Sin+imagen";
     if (product.img.startsWith("http")) return product.img;
-    return `http://localhost:8080${product.img}`;
+    return `${API}${product.img}`;
   };
 
   const formatPrice = (value) => new Intl.NumberFormat("es-CO").format(value);

@@ -26,8 +26,7 @@ import {
 import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
 import InventoryModal from "./InventoryModal";
-
-const API = "http://localhost:8080";
+import { API } from "../config";
 const LOW_STOCK_LIMIT = 5;
 
 const emptyProduct = {
@@ -921,7 +920,8 @@ function ProductionInventoryView({ user }) {
         }))
     };
 
-    const res = await fetch(`${API}/production-items${isEdit ? `/${formItem.id}` : ""}`, {
+    const userIdParam = user?.id ? `?userId=${user.id}` : "";
+    const res = await fetch(`${API}/production-items${isEdit ? `/${formItem.id}${userIdParam}` : ""}`, {
       method: isEdit ? "PUT" : "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)
@@ -934,6 +934,7 @@ function ProductionInventoryView({ user }) {
     );
     setSelectedItem(prev => prev?.id === saved.id ? saved : prev);
     setFormItem(null);
+    loadMovements();
   };
 
   const deleteItem = async (id) => {

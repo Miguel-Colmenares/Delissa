@@ -21,8 +21,7 @@ import {
   X,
   XCircle
 } from "lucide-react";
-
-const API = "http://localhost:8080";
+import { API } from "../config";
 
 export default function Invoices({ formatCOP, user }) {
   const money = formatCOP || formatCurrency;

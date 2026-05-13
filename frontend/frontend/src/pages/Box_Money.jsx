@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import "react-calendar/dist/Calendar.css";
 
-const API = "http://localhost:8080";
+import { API } from "../config";
 const SECTIONS = {
   open: "Apertura",
   moves: "Movimientos",

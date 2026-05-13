@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { API } from "../config";
 import { motion, AnimatePresence } from "framer-motion";
 import SaleModal from "../pages/SaleModal";
 import Stock from "../pages/Stock";
@@ -78,14 +79,14 @@ export default function Dashboard() {
   });
 
   useEffect(() => {
-    fetch("http://localhost:8080/products")
+    fetch(`${API}/products`)
       .then(res => res.json())
       .then(data => setProducts(data))
       .catch(err => console.error(err));
   }, []);
 
   useEffect(() => {
-    fetch("http://localhost:8080/config/iva_rate")
+    fetch(`${API}/config/iva_rate`)
       .then(res => res.text())
       .then(rate => { if (rate) setIvaRate(parseFloat(rate)); })
       .catch(() => {});
@@ -159,7 +160,7 @@ export default function Dashboard() {
   const loadUsers = async () => {
     if (user?.rol !== "admin") return;
     try {
-      const res = await fetch("http://localhost:8080/users");
+      const res = await fetch(`${API}/users`);
       const data = await res.json();
       setManagedUsers(Array.isArray(data) ? data : []);
     } catch {
@@ -175,7 +176,7 @@ export default function Dashboard() {
 
   const saveProfile = async () => {
     try {
-      const res = await fetch(`http://localhost:8080/users/${user.id}`, {
+      const res = await fetch(`${API}/users/${user.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(profileForm)
@@ -191,7 +192,7 @@ export default function Dashboard() {
 
   const createAccount = async () => {
     try {
-      const res = await fetch("http://localhost:8080/auth/register", {
+      const res = await fetch(`${API}/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(accountForm)
@@ -209,7 +210,7 @@ export default function Dashboard() {
 
   const updateAccountRole = async (account, rol) => {
     try {
-      const res = await fetch(`http://localhost:8080/users/${account.id}`, {
+      const res = await fetch(`${API}/users/${account.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...account, rol })
@@ -223,11 +224,11 @@ export default function Dashboard() {
   };
 
   const deleteAccount = async (accountId) => {
-    const shouldDelete = window.confirm("Â¿Quieres eliminar esta cuenta?");
+    const shouldDelete = window.confirm("¿Quieres eliminar esta cuenta?");
     if (!shouldDelete) return;
 
     try {
-      const res = await fetch(`http://localhost:8080/users/${accountId}`, {
+      const res = await fetch(`${API}/users/${accountId}`, {
         method: "DELETE"
       });
 
@@ -264,7 +265,7 @@ export default function Dashboard() {
 
     console.log("ENVIANDO:", salePayload);
 
-    const res = await fetch("http://localhost:8080/sales", {
+    const res = await fetch(`${API}/sales`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
@@ -609,7 +610,7 @@ function SettingsModal({
 
   useEffect(() => {
     if (open && isAdmin) {
-      fetch("http://localhost:8080/config/iva_rate")
+      fetch(`${API}/config/iva_rate`)
         .then(res => res.text())
         .then(rate => { if (rate) setIvaRateInput(rate); })
         .catch(() => {});
@@ -619,7 +620,7 @@ function SettingsModal({
   const saveIvaRate = async () => {
     setLoadingIva(true);
     try {
-      await fetch("http://localhost:8080/config/iva_rate", {
+      await fetch(`${API}/config/iva_rate`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ value: ivaRateInput })
