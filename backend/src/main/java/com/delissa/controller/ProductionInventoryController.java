@@ -14,7 +14,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/production-items")
-@CrossOrigin(origins = "*")
 public class ProductionInventoryController {
 
     private final ProductionItemRepository productionItemRepository;

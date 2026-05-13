@@ -14,7 +14,6 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/box-closures")
-@CrossOrigin("*")
 public class BoxClosureController {
 
     private final BoxClosureService boxClosureService;

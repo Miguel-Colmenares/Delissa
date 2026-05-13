@@ -9,7 +9,6 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/config")
-@CrossOrigin(origins = "*")
 public class ConfigController {
 
     private final ConfigSettingRepository configSettingRepository;

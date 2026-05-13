@@ -8,7 +8,6 @@ import com.delissa.service.SaleService;
 
 @RestController
 @RequestMapping("/sales")
-@CrossOrigin("*")
 public class SaleController {
 
     private final SaleService saleService;

@@ -13,7 +13,6 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/expenses")
-@CrossOrigin("*")
 public class ExpenseController {
 
     private final ExpenseRepository expenseRepository;
